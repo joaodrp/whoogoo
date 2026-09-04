@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A record leaving its ring: the launcher icon and the app header. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="5.5"
+        android:pathData="M24,24 m-13,0 a13,13 0 1 1 26,0 a13,13 0 1 1 -26,0" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M24,21.25 h17 a2.75,2.75 0 0 1 0,5.5 h-17 Z" />
+</vector>
