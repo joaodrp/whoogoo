@@ -33,17 +33,20 @@ Re-running an import updates records instead of duplicating them.
 ## Prerequisites
 
 - Python 3.10+ (or [mise](https://mise.jdx.dev), which installs it for you)
-- Android SDK with the emulator. macOS: `brew install --cask android-commandlinetools`. Otherwise
-  install [Android Studio](https://developer.android.com/studio) and open its SDK Manager once, or
-  the [command-line tools](https://developer.android.com/studio#command-line-tools-only) plus a JDK
-  with `ANDROID_HOME` set. `whoogoo doctor` tells you exactly what is missing and how to get it.
+- Android SDK with the emulator. Get `sdkmanager` first: on macOS
+  `brew install --cask android-commandlinetools` (needs a JDK, e.g. `mise use -g java@21`); elsewhere
+  [Android Studio](https://developer.android.com/studio) or the
+  [command-line tools](https://developer.android.com/studio#command-line-tools-only) with
+  `ANDROID_HOME` set. Then run `whoogoo doctor`: it lists what is still missing (emulator,
+  platform-tools, the Android 16 Play Store image) with the exact `sdkmanager` command to install it.
 - Linux: access to `/dev/kvm`. macOS: nothing extra.
 - A Google account already set up with Google Health
 
 ## Install
 
 ```sh
-mise use -g pipx:whoogoo     # or: pipx install whoogoo, or run without installing: uvx whoogoo
+mise use -g pipx:whoogoo                                      # or: pipx install whoogoo / uvx whoogoo
+uv tool install git+https://github.com/joaodrp/whoogoo        # or straight from the repo
 ```
 
 ## Steps
@@ -56,8 +59,8 @@ whoogoo emu                             # first run creates a Pixel 10 / Android
 whoogoo import my_whoop_data.zip        # in another terminal: converts, installs the importer, loads everything
 ```
 
-`import` prints progress and ends with `done`. Health Connect on the emulator now holds your data
-(Settings -> Health Connect -> Data and access).
+`import` prints progress and ends with `done`. Health Connect on the emulator now holds your data:
+search for "Health Connect" in the emulator's Settings and open Data and access.
 
 ## Sync to your Google account
 
@@ -68,6 +71,8 @@ In the emulator window:
 3. In Google Health: Connections -> Health Connect (or Partner apps -> Set up Health Connect). Allow
    all data types, then under Additional access enable Historical data and background access.
 4. Leave the emulator running until it finishes syncing. Old data can take a while to appear.
+
+Menu names follow Google's help pages and may differ slightly between app versions.
 
 Google Health computes its own sleep score and Cardio Load from first-party devices only, so
 imported nights show duration and stages but no score.
