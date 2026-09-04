@@ -21,3 +21,7 @@ __pycache__/
 # python packaging
 dist/
 *.egg-info/
+
+# personal mise overrides
+mise.local.toml
+.env.op
