@@ -19,6 +19,9 @@ const (
 	// The APK from the CLI's own release: app and CLI share the log protocol, so they ship together.
 	apkURL  = "https://github.com/joaodrp/whoogoo/releases/download/v%s/whoogoo_%s.apk"
 	timeout = 10 * time.Minute // emulator boot, and the import itself
+	staging = "/data/local/tmp/whoogoo-export.zip"
+	// Where the app finds the export in its files directory; passed to it in the "zip" extra.
+	exportFile = "export.zip"
 )
 
 var (
@@ -77,18 +80,17 @@ func downloadAPK() (string, error) {
 	return path, f.Close()
 }
 
-func importCmd(source, apk string) error {
+func importCmd(zip, apk string) error {
 	if adbPath() == "" {
 		return fmt.Errorf("adb not found; run `whoogoo setup`")
 	}
-	records := source
-	if !strings.HasSuffix(source, ".json") {
-		records = recordsPath()
-		counts, err := write(source, records)
-		if err != nil {
-			return err
-		}
-		fmt.Println(countsString(counts))
+	if st, err := os.Stat(zip); err != nil {
+		return err
+	} else if !st.Mode().IsRegular() {
+		return fmt.Errorf("%s: expected the export zip file", zip)
+	}
+	if err := os.MkdirAll(cacheDir(), 0o755); err != nil {
+		return err
 	}
 	if apk == "" {
 		var err error
@@ -100,10 +102,11 @@ func importCmd(source, apk string) error {
 	if err := waitForDevice(); err != nil {
 		return err
 	}
-	if _, err := adb("install", "-r", apk); err != nil {
+	// -d: a local build (versionCode 1) may replace a release.
+	if _, err := adb("install", "-r", "-d", apk); err != nil {
 		return err
 	}
-	if _, err := adb("push", records, "/data/local/tmp/records.json"); err != nil {
+	if _, err := adb("push", zip, staging); err != nil {
 		return err
 	}
 	// Grant whatever health permissions the installed app declares, so the manifest stays the only list.
@@ -113,7 +116,8 @@ func importCmd(source, apk string) error {
 	}
 	script := []string{
 		"run-as " + app + " mkdir -p files",
-		"run-as " + app + " cp /data/local/tmp/records.json files/records.json",
+		"run-as " + app + " cp " + staging + " files/" + exportFile,
+		"rm " + staging,
 	}
 	for _, p := range slices.Compact(slices.Sorted(slices.Values(healthPermission.FindAllString(dump, -1)))) {
 		script = append(script, "pm grant "+app+" "+p)
@@ -124,10 +128,22 @@ func importCmd(source, apk string) error {
 	if _, err := adb("logcat", "-c"); err != nil {
 		return err
 	}
-	if _, err := adb("shell", "am", "start", "-n", app+"/.MainActivity"); err != nil {
+	if _, err := adb("shell", "am", "start", "-n", app+"/.MainActivity", "--es", "zip", exportFile); err != nil {
 		return err
 	}
-	return followLog()
+	if err := followLog(); err != nil {
+		return err
+	}
+	// exec-out keeps the bytes as written, unlike shell, which is meant for a terminal.
+	records, err := command(adbPath(), "exec-out", "run-as", app, "cat", "files/records.json").Output()
+	if err != nil {
+		return fmt.Errorf("pulling records.json: %w", err)
+	}
+	if err := os.WriteFile(recordsPath(), records, 0o644); err != nil {
+		return err
+	}
+	fmt.Println("records saved to", recordsPath(), "(for `whoogoo verify`)")
+	return nil
 }
 
 // followLog streams the app's log until it reports "done" or an "error:" line.

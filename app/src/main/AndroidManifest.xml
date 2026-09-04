@@ -14,8 +14,16 @@
         <package android:name="com.google.android.apps.healthdata" />
     </queries>
 
-    <application android:label="Whoogoo">
-        <activity android:name=".MainActivity" android:exported="true">
+    <application
+        android:icon="@mipmap/ic_launcher"
+        android:label="Whoogoo"
+        android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
+        <!-- An import survives rotation and theme changes: the activity is never recreated. -->
+        <activity
+            android:name=".MainActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|density|uiMode|keyboardHidden"
+            android:exported="true"
+            android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

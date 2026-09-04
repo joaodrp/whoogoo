@@ -18,6 +18,9 @@ import (
 	"time"
 )
 
+// Record is one Health Connect record as the app wrote it to records.json (Convert.kt).
+type Record map[string]any
+
 // Google Health API, read-only: https://developers.google.com/health/reference/rest
 const api = "https://health.googleapis.com/v4/users/me/dataTypes"
 
