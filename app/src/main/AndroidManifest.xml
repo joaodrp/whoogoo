@@ -17,7 +17,7 @@
     <application
         android:icon="@mipmap/ic_launcher"
         android:label="Whoogoo"
-        android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
+        android:theme="@style/Theme.Whoogoo">
         <!-- An import survives rotation and theme changes: the activity is never recreated. -->
         <activity
             android:name=".MainActivity"

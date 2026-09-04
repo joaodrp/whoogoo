@@ -1,10 +1,12 @@
 package dev.joaodrp.whoogoo
 
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -12,20 +14,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.ExperimentalTextApi
@@ -54,36 +54,43 @@ sealed interface Ui {
 }
 
 @OptIn(ExperimentalTextApi::class)
-private val manrope = FontFamily(
-    listOf(FontWeight.Normal, FontWeight.Medium, FontWeight.SemiBold, FontWeight.Bold).map {
-        Font(R.font.manrope, it, variationSettings = FontVariation.Settings(it, FontStyle.Normal))
+private val geist = FontFamily(
+    listOf(FontWeight.Medium, FontWeight.Bold).map {
+        Font(R.font.geist, it, variationSettings = FontVariation.Settings(it, FontStyle.Normal))
     }
 )
 
-private val paper = Color(0xFFF3F4F0)
-private val ink = Color(0xFF151B26)
-private val night = Color(0xFF10151F)
-private val mist = Color(0xFF6F7786)
-private val fog = Color(0xFF9AA2AF)
-private val amber = Color(0xFFE8A23A)
+// One look in both themes: the blue is the brand.
+private val ultramarine = Color(0xFF1E2BFF)
+private val white = Color.White
+private val soft = Color(0xD9FFFFFF)
+private val track = Color(0x38FFFFFF)
+private val black = Color(0xFF0A0A0F)
 
 private val display =
     TextStyle(
-        fontFamily = manrope,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 34.sp,
-        lineHeight = 38.sp,
-        letterSpacing = (-0.8).sp
+        fontFamily = geist,
+        fontWeight = FontWeight.Bold,
+        fontSize = 56.sp,
+        lineHeight = 56.sp,
+        letterSpacing = (-2.5).sp
     )
-private val body = TextStyle(fontFamily = manrope, fontWeight = FontWeight.Normal, fontSize = 16.sp, lineHeight = 24.sp)
-private val small =
-    TextStyle(fontFamily = manrope, fontWeight = FontWeight.Medium, fontSize = 13.sp, lineHeight = 18.sp)
+private val title =
+    TextStyle(
+        fontFamily = geist,
+        fontWeight = FontWeight.Bold,
+        fontSize = 38.sp,
+        lineHeight = 42.sp,
+        letterSpacing = (-1.5).sp
+    )
+private val body = TextStyle(fontFamily = geist, fontWeight = FontWeight.Medium, fontSize = 17.sp, lineHeight = 25.sp)
+private val small = TextStyle(fontFamily = geist, fontWeight = FontWeight.Medium, fontSize = 13.sp, lineHeight = 18.sp)
 private val figure =
     TextStyle(
-        fontFamily = manrope,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 17.sp,
-        lineHeight = 24.sp,
+        fontFamily = geist,
+        fontWeight = FontWeight.Bold,
+        fontSize = 20.sp,
+        lineHeight = 26.sp,
         fontFeatureSettings = "tnum"
     )
 
@@ -94,92 +101,72 @@ private val labels = mapOf(
     "active_calories" to "Workout calories"
 )
 
-private val month: DateTimeFormatter = DateTimeFormatter.ofPattern("MMMM yyyy")
+private val month: DateTimeFormatter = DateTimeFormatter.ofPattern("MMMM\nyyyy")
 private val day: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM yyyy")
 
 @Composable
 fun App(ui: Ui, onPick: () -> Unit, onReset: () -> Unit) {
-    val dark = isSystemInDarkTheme()
-    val fg = if (dark) paper else ink
-    val muted = if (dark) fog else mist
-    val scheme = if (dark) {
+    val scheme =
         darkColorScheme(
-            primary = amber,
-            onPrimary = night,
-            background = night,
-            onBackground = paper,
-            surface = night,
-            onSurface = paper
+            primary = black,
+            onPrimary = white,
+            background = ultramarine,
+            onBackground = white,
+            surface = ultramarine,
+            onSurface = white
         )
-    } else {
-        lightColorScheme(
-            primary = ink,
-            onPrimary = paper,
-            background = paper,
-            onBackground = ink,
-            surface = paper,
-            onSurface = ink
-        )
-    }
     MaterialTheme(colorScheme = scheme) {
-        Surface(Modifier.fillMaxSize(), color = scheme.background) {
+        Surface(Modifier.fillMaxSize(), color = ultramarine) {
             Column(Modifier.safeDrawingPadding().fillMaxSize().padding(horizontal = 24.dp, vertical = 20.dp)) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(ImageVector.vectorResource(R.drawable.hypnogram), null, Modifier.size(24.dp), tint = amber)
-                    Text(
-                        "whoogoo",
-                        style = small.copy(fontWeight = FontWeight.Bold, letterSpacing = 0.4.sp),
-                        color = fg
-                    )
+                    Icon(ImageVector.vectorResource(R.drawable.mark), null, Modifier.size(22.dp), tint = white)
+                    Text("whoogoo", style = small.copy(fontWeight = FontWeight.Bold), color = white)
                 }
                 Spacer(Modifier.weight(1f))
                 when (ui) {
                     Ui.Idle -> {
-                        Text("Your WHOOP history,\ninto Google Health.", style = display, color = fg)
+                        Text("Your WHOOP\nhistory, into\nGoogle Health.", style = title, color = white)
                         Text(
                             "Choose the export zip WHOOP emailed you. Sleep, vitals and workouts go into Health " +
                                 "Connect, and Google Health syncs them to your account.",
                             style = body,
-                            color = muted,
-                            modifier = Modifier.padding(top = 16.dp)
-                        )
-                        Action("Choose export", onPick)
-                    }
-
-                    Ui.Reading -> {
-                        Text("Reading", style = small, color = muted)
-                        Text("your export", style = display, color = fg)
-                        Timeline(0f, fg)
-                    }
-
-                    is Ui.Running -> {
-                        Text("Importing", style = small, color = muted)
-                        Text(month.format(ui.at), style = display, color = fg)
-                        val span = ChronoUnit.DAYS.between(ui.from, ui.to).coerceAtLeast(1)
-                        Timeline(ChronoUnit.DAYS.between(ui.from, ui.at).toFloat() / span, fg)
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(day.format(ui.from), style = small, color = muted)
-                            Text(day.format(ui.to), style = small, color = muted)
-                        }
-                        Text(
-                            "%,d of %,d records".format(ui.done, ui.total),
-                            style = body,
-                            color = muted,
+                            color = soft,
                             modifier = Modifier.padding(top = 20.dp)
                         )
                     }
 
+                    Ui.Reading -> {
+                        Text("Reading\nyour export", style = display, color = white)
+                        Band(0f)
+                    }
+
+                    is Ui.Running -> {
+                        Text(month.format(ui.at), style = display, color = white)
+                        Text(
+                            "%,d of %,d records moved".format(ui.done, ui.total),
+                            style = body,
+                            color = soft,
+                            modifier = Modifier.padding(top = 16.dp)
+                        )
+                        val span = ChronoUnit.DAYS.between(ui.from, ui.to).coerceAtLeast(1)
+                        Band(ChronoUnit.DAYS.between(ui.from, ui.at).toFloat() / span)
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(day.format(ui.from), style = small, color = soft)
+                            Text(day.format(ui.to), style = small, color = soft)
+                        }
+                    }
+
                     is Ui.Done -> {
-                        Text("All moved over.", style = display, color = fg)
-                        Column(Modifier.padding(top = 24.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text("All moved\nover.", style = title, color = white)
+                        Column(Modifier.padding(top = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             for ((type, label) in labels) {
                                 val n = ui.counts[type] ?: continue
                                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    Text(label, style = body, color = muted)
-                                    Text("%,d".format(n), style = figure, color = fg)
+                                    Text(label, style = body, color = soft)
+                                    Text("%,d".format(n), style = figure, color = white)
                                 }
                             }
                         }
@@ -187,17 +174,22 @@ fun App(ui: Ui, onPick: () -> Unit, onReset: () -> Unit) {
                             "Now open Google Health, connect Health Connect and allow historical data. " +
                                 "Older records take a while to show up.",
                             style = body,
-                            color = muted,
+                            color = soft,
                             modifier = Modifier.padding(top = 24.dp)
                         )
-                        Action("Import another export", onPick)
                     }
 
                     is Ui.Failed -> {
-                        Text("That didn't work.", style = display, color = fg)
-                        Text(ui.message, style = body, color = muted, modifier = Modifier.padding(top = 16.dp))
-                        Action("Try again", onReset)
+                        Text("That didn't\nwork.", style = title, color = white)
+                        Text(ui.message, style = body, color = soft, modifier = Modifier.padding(top = 20.dp))
                     }
+                }
+                Spacer(Modifier.weight(1f))
+                when (ui) {
+                    Ui.Idle -> Action("Choose export", onPick)
+                    is Ui.Done -> Action("Import another export", onPick)
+                    is Ui.Failed -> Action("Try again", onReset)
+                    else -> Spacer(Modifier.height(56.dp))
                 }
             }
         }
@@ -206,26 +198,29 @@ fun App(ui: Ui, onPick: () -> Unit, onReset: () -> Unit) {
 
 /** The export's date range, filled up to the record being written. */
 @Composable
-private fun Timeline(fraction: Float, fg: Color) {
-    LinearProgressIndicator(
-        progress = { fraction.coerceIn(0.02f, 1f) },
-        modifier = Modifier.fillMaxWidth().padding(top = 28.dp, bottom = 10.dp).height(6.dp),
-        color = amber,
-        trackColor = fg.copy(alpha = 0.12f),
-        strokeCap = StrokeCap.Round,
-        gapSize = 0.dp,
-        drawStopIndicator = {}
-    )
+private fun Band(fraction: Float) {
+    Box(
+        Modifier.fillMaxWidth().padding(
+            top = 28.dp,
+            bottom = 10.dp
+        ).height(22.dp).background(track, RoundedCornerShape(2.dp))
+    ) {
+        Box(
+            Modifier.fillMaxWidth(
+                fraction.coerceIn(0.01f, 1f)
+            ).fillMaxHeight().background(white, RoundedCornerShape(2.dp))
+        )
+    }
 }
 
 @Composable
 private fun Action(label: String, onClick: () -> Unit) {
     Button(
         onClick,
-        Modifier.fillMaxWidth().padding(top = 32.dp).height(56.dp),
+        Modifier.fillMaxWidth().height(56.dp),
         shape = CircleShape,
-        colors = ButtonDefaults.buttonColors()
+        colors = ButtonDefaults.buttonColors(containerColor = black, contentColor = white)
     ) {
-        Text(label, style = body.copy(fontWeight = FontWeight.SemiBold))
+        Text(label, style = body.copy(fontWeight = FontWeight.Bold))
     }
 }
