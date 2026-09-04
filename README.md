@@ -135,4 +135,4 @@ Standard library plus cobra for the command line.
 
 Releases are automated with release-please from Conventional Commits: every push to `main`
 updates a release PR with the version bump and changelog. Merging that PR tags the release and
-attaches the binaries for each platform plus the APK (the CLI downloads it from there).
+attaches the binaries for each platform plus the APK; the CLI downloads the APK of its own version.
