@@ -3,14 +3,23 @@ plugins {
 }
 
 android {
-    namespace = "dev.joaodrp.whoopimport"
+    namespace = "dev.joaodrp.whoogoo"
     compileSdk = 36
     defaultConfig {
-        applicationId = "dev.joaodrp.whoopimport"
+        applicationId = "dev.joaodrp.whoogoo"
         minSdk = 34
         targetSdk = 36
         versionCode = 1
         versionName = "1"
+    }
+    // Throwaway key committed on purpose: every release must install over the previous one.
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("whoogoo.jks")
+            storePassword = "whoogoo"
+            keyAlias = "whoogoo"
+            keyPassword = "whoogoo"
+        }
     }
 }
 
