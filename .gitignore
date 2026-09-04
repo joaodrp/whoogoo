@@ -1,0 +1,15 @@
+# personal health data
+*.zip
+*.csv
+records.json
+
+# android
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
+.kotlin/
+
+# python
+__pycache__/

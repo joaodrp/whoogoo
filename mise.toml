@@ -1,0 +1,43 @@
+[tools]
+java = "21"
+python = "3"
+
+[env]
+# Play Store system image ABI must match the host CPU.
+ABI = "{% if arch() == 'arm64' %}arm64-v8a{% else %}x86_64{% endif %}"
+AVD = "whoop"
+APP = "dev.joaodrp.whoopimport"
+
+[tasks.sdk]
+description = "Install the Android SDK packages this project needs (requires cmdline-tools in ANDROID_HOME)"
+run = 'yes | sdkmanager platform-tools "platforms;android-36" "build-tools;36.0.0" emulator "system-images;android-36;google_apis_playstore;$ABI"'
+
+[tasks.avd]
+description = "Create the emulator device"
+run = 'echo no | avdmanager create avd --force -n "$AVD" -k "system-images;android-36;google_apis_playstore;$ABI" -d pixel_10'
+
+[tasks.emu]
+description = "Boot the emulator (with a window, so you can sign in to Google)"
+run = '"$ANDROID_HOME/emulator/emulator" -avd "$AVD" -no-snapshot-load'
+
+[tasks.convert]
+description = "Convert a WHOOP export zip into records.json"
+run = 'python3 whoop2hc.py "{{arg(name="export")}}" records.json'
+
+[tasks.import]
+description = "Build the app, install it on the running emulator/device, load records.json and run the import"
+run = """
+set -e
+./gradlew -q assembleDebug
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb push records.json /data/local/tmp/records.json
+adb shell run-as "$APP" mkdir -p files
+adb shell run-as "$APP" cp /data/local/tmp/records.json files/records.json
+for p in $(grep -oE 'android.permission.health.WRITE_[A-Z_]+' app/src/main/AndroidManifest.xml); do
+  adb shell pm grant "$APP" "$p"
+done
+adb logcat -c
+adb shell am start -n "$APP/.MainActivity"
+until adb logcat -d -s WhoopImport | grep -qE 'done|failed|denied|missing|bad record'; do sleep 2; done
+adb logcat -d -s WhoopImport
+"""
