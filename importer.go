@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -28,7 +27,7 @@ var (
 )
 
 func adb(args ...string) (string, error) {
-	out, err := exec.Command(adbPath(), args...).CombinedOutput()
+	out, err := command(append([]string{adbPath()}, args...)...).CombinedOutput()
 	if err != nil {
 		return string(out), fmt.Errorf("adb %s: %w\n%s", strings.Join(args, " "), err, out)
 	}
@@ -130,7 +129,8 @@ func importCmd(source, apk string) error {
 func followLog() error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	c := exec.CommandContext(ctx, adbPath(), "logcat", "-v", "raw", "-s", "Whoogoo")
+	c := command(adbPath(), "logcat", "-v", "raw", "-s", "Whoogoo")
+	go func() { <-ctx.Done(); _ = c.Process.Kill() }()
 	out, err := c.StdoutPipe()
 	if err != nil {
 		return err

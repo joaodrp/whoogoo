@@ -64,16 +64,37 @@ func sdkRoot() string {
 	return ""
 }
 
-// tool returns the SDK tool's path, preferring the SDK root over PATH; "" if absent.
+// sdkTool returns the tool's path under the SDK root, "" if not installed there. The emulator
+// needs platform-tools next to it, so a copy elsewhere on PATH does not count.
+func sdkTool(name string) string {
+	root := sdkRoot()
+	if root == "" {
+		return ""
+	}
+	p := filepath.Join(root, tools[name])
+	if _, err := os.Stat(p); err != nil {
+		return ""
+	}
+	return p
+}
+
+// tool prefers the SDK root, then PATH; "" if absent.
 func tool(name string) string {
-	if root := sdkRoot(); root != "" {
-		p := filepath.Join(root, tools[name])
-		if _, err := os.Stat(p); err == nil {
-			return p
-		}
+	if p := sdkTool(name); p != "" {
+		return p
 	}
 	p, _ := exec.LookPath(name)
 	return p
+}
+
+// command builds an exec.Cmd with the SDK root exported, which the emulator requires to find
+// system images and platform-tools.
+func command(cmd ...string) *exec.Cmd {
+	c := exec.Command(cmd[0], cmd[1:]...)
+	if root := sdkRoot(); root != "" {
+		c.Env = append(os.Environ(), "ANDROID_HOME="+root, "ANDROID_SDK_ROOT="+root)
+	}
+	return c
 }
 
 func which(name string) bool {
@@ -83,7 +104,7 @@ func which(name string) bool {
 
 // run executes cmd with the given stdin, streaming its output to the terminal.
 func run(stdin string, cmd ...string) error {
-	c := exec.Command(cmd[0], cmd[1:]...)
+	c := command(cmd...)
 	c.Stdin, c.Stdout, c.Stderr = strings.NewReader(stdin), os.Stdout, os.Stderr
 	return c.Run()
 }
@@ -111,8 +132,8 @@ func checks() []requirement {
 		{label: "java (for sdkmanager/avdmanager)", ok: which("java"), hint: "install a JDK", cmd: javaFix},
 		{label: "sdkmanager", ok: tool("sdkmanager") != "", hint: "reinstall the command-line tools"},
 		{label: "avdmanager", ok: tool("avdmanager") != "", hint: "reinstall the command-line tools"},
-		{label: "adb", ok: tool("adb") != "", hint: `sdkmanager "platform-tools"`, pkg: "platform-tools"},
-		{label: "emulator", ok: tool("emulator") != "", hint: `sdkmanager "emulator"`, pkg: "emulator"},
+		{label: "adb (platform-tools)", ok: sdkTool("adb") != "", hint: `sdkmanager "platform-tools"`, pkg: "platform-tools"},
+		{label: "emulator", ok: sdkTool("emulator") != "", hint: `sdkmanager "emulator"`, pkg: "emulator"},
 		{label: "Android 16 Play Store image", ok: root != "" && isDir(imageDir), hint: fmt.Sprintf("sdkmanager %q", image), pkg: image},
 	}
 	if runtime.GOOS == "linux" {
@@ -226,7 +247,7 @@ func ensureAVD() error {
 	}
 	fmt.Printf("creating virtual device %s\n", avd)
 	args := []string{"create", "avd", "--force", "-n", avd, "-k", image}
-	c := exec.Command(tool("avdmanager"), append(args, "-d", "pixel_10")...)
+	c := command(append([]string{tool("avdmanager")}, append(args, "-d", "pixel_10")...)...)
 	c.Stdin = strings.NewReader("no\n")
 	if _, err := c.CombinedOutput(); err == nil {
 		return nil
