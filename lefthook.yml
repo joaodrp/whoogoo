@@ -23,7 +23,7 @@ commit-msg:
 
 pre-push:
   commands:
-    go-test:
-      run: go vet ./... && go test ./...
+    test:
+      run: mise run test
     apk:
-      run: ./gradlew -q assembleDebug
+      run: mise run apk
