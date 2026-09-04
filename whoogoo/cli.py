@@ -35,7 +35,8 @@ PERMISSIONS = [f"android.permission.health.WRITE_{p}" for p in (
 
 def sdk_root():
     candidates = [os.environ.get("ANDROID_HOME"), os.environ.get("ANDROID_SDK_ROOT"),
-                  Path.home() / "Android" / "Sdk", Path.home() / "Library" / "Android" / "sdk"]
+                  Path.home() / "Android" / "Sdk", Path.home() / "Library" / "Android" / "sdk",
+                  Path("/opt/homebrew/share/android-commandlinetools")]
     return next((Path(c) for c in candidates if c and Path(c).is_dir()), None)
 
 
@@ -51,7 +52,9 @@ def adb(*args, **kw):
 
 def doctor(_args=None):
     root = sdk_root()
-    checks = [("Android SDK", root, "install Android Studio or the command-line tools and set ANDROID_HOME")]
+    sdk_hint = ("brew install --cask android-commandlinetools" if sys.platform == "darwin"
+                else "install Android Studio or the command-line tools and set ANDROID_HOME")
+    checks = [("Android SDK", root, sdk_hint)]
     packages = {"adb": "platform-tools", "emulator": "emulator", "sdkmanager": "cmdline-tools;latest", "avdmanager": "cmdline-tools;latest"}
     for name in TOOLS:
         checks.append((name, tool(name), f'sdkmanager "{packages[name]}"'))
