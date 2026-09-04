@@ -10,7 +10,7 @@ android {
         minSdk = 34
         targetSdk = 36
         versionCode = 1
-        versionName = "1"
+        versionName = System.getenv("WHOOGOO_VERSION")?.removePrefix("v") ?: "0.0.0-dev"
     }
     // Throwaway key committed on purpose: every release must install over the previous one.
     signingConfigs {

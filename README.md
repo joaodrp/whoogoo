@@ -113,5 +113,7 @@ mise run dev -- import --apk app/build/outputs/apk/debug/app-debug.apk my_whoop_
 | `app/` | minimal Android app that upserts the records into Health Connect |
 | `app/whoogoo.jks` | throwaway signing key, committed so every release installs over the previous one |
 
-Releases: push a `v*` tag. CI builds the APK, attaches it to the GitHub release (the CLI downloads
-it from there), and publishes the package to PyPI through trusted publishing.
+Releases are automated with release-please from Conventional Commits: every push to `main`
+updates a release PR with the version bump and changelog. Merging that PR tags the release, builds
+the APK and attaches it (the CLI downloads it from there), and publishes the package to PyPI
+through trusted publishing.
