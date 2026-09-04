@@ -77,11 +77,14 @@ imported nights show duration and stages but no score.
 `whoogoo verify` reads your account through the Google Health API and diffs it against what was
 imported, per type: matched, value differs, missing. One-time setup:
 
-1. In the [Cloud Console](https://console.cloud.google.com) create a project and enable the
-   "Google Health API".
-2. OAuth consent screen: External, publishing status Testing, add your Google account as a test user.
-   No verification is needed for personal use.
-3. Credentials -> Create OAuth client ID -> Desktop app. Export the values:
+1. [Create a Google Cloud project](https://console.cloud.google.com/projectcreate), then
+   [enable the Google Health API](https://console.cloud.google.com/apis/library/health.googleapis.com)
+   in it.
+2. [OAuth consent screen](https://console.cloud.google.com/auth/overview): External, publishing
+   status Testing, add your Google account under Audience -> Test users. No verification is needed
+   for personal use.
+3. [Credentials](https://console.cloud.google.com/apis/credentials) -> Create OAuth client ID ->
+   Desktop app. Export the values:
 
    ```sh
    export GOOGLE_HEALTH_CLIENT_ID=...
