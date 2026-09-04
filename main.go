@@ -46,23 +46,15 @@ func main() {
 	}
 	emuC.Flags().BoolVar(&headless, "headless", false, "no window (you cannot sign in to Google this way)")
 
-	var out string
-	convertC := &cobra.Command{
-		Use:   "convert <export.zip|dir>",
-		Short: "Convert a WHOOP export to Health Connect records JSON",
-		Args:  cobra.ExactArgs(1),
-		RunE:  func(_ *cobra.Command, args []string) error { return convertCmd(args[0], out) },
-	}
-	convertC.Flags().StringVarP(&out, "out", "o", "records.json", "output file")
-
 	var apk string
 	importC := &cobra.Command{
-		Use:   "import <export.zip|dir|records.json>",
-		Short: "Convert, then load everything into Health Connect on the running emulator",
+		Use:   "import <export.zip>",
+		Short: "Load a WHOOP export into Health Connect on the running emulator",
+		Long:  "Installs the whoogoo app on the emulator, hands it the export and streams its progress. The records it wrote are pulled back for `verify`.",
 		Args:  cobra.ExactArgs(1),
 		RunE:  func(_ *cobra.Command, args []string) error { return importCmd(args[0], apk) },
 	}
-	importC.Flags().StringVar(&apk, "apk", "", "local importer APK instead of the latest GitHub release")
+	importC.Flags().StringVar(&apk, "apk", "", "local app APK instead of the one from this version's GitHub release")
 
 	verifyC := &cobra.Command{
 		Use:   "verify [records.json]",
@@ -77,7 +69,7 @@ func main() {
 		},
 	}
 
-	root.AddCommand(setupC, doctorC, emuC, convertC, importC, verifyC)
+	root.AddCommand(setupC, doctorC, emuC, importC, verifyC)
 	if err := root.Execute(); err != nil {
 		root.PrintErrln("error:", err)
 		os.Exit(1)

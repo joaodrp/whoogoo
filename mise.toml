@@ -18,17 +18,17 @@ run = "gofmt -w . && ktlint -F 'app/src/**/*.kt' '*.kts' 'app/*.kts'"
 run = "golangci-lint run && ktlint 'app/src/**/*.kt' '*.kts' 'app/*.kts'"
 
 [tasks.test]
-run = "go vet ./... && go test ./..."
+run = "go vet ./... && go test ./... && ./gradlew -q testDebugUnitTest"
 
 [tasks.check]
-description = "Everything CI runs, minus the APK build"
+description = "Lint and tests, what CI runs before building the APK"
 depends = ["lint", "test"]
 
 [tasks.build]
 run = "go build -o whoogoo ."
 
 [tasks.apk]
-description = "Build the importer APK"
+description = "Build the app APK"
 run = "./gradlew -q assembleDebug"
 
 [tasks.dev]

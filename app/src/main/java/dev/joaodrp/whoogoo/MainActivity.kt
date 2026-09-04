@@ -1,38 +1,30 @@
 package dev.joaodrp.whoogoo
 
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.widget.ScrollView
-import android.widget.TextView
+import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.PermissionController
-import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
-import androidx.health.connect.client.records.ExerciseSessionRecord
-import androidx.health.connect.client.records.HeartRateVariabilityRmssdRecord
-import androidx.health.connect.client.records.OxygenSaturationRecord
-import androidx.health.connect.client.records.Record
-import androidx.health.connect.client.records.RespiratoryRateRecord
-import androidx.health.connect.client.records.RestingHeartRateRecord
-import androidx.health.connect.client.records.SkinTemperatureRecord
-import androidx.health.connect.client.records.SleepSessionRecord
-import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
-import androidx.health.connect.client.records.metadata.Device
-import androidx.health.connect.client.records.metadata.Metadata
-import androidx.health.connect.client.units.Energy
-import androidx.health.connect.client.units.Percentage
-import androidx.health.connect.client.units.Temperature
-import androidx.health.connect.client.units.TemperatureDelta
 import androidx.lifecycle.lifecycleScope
 import java.io.File
-import java.time.OffsetDateTime
+import java.io.InputStream
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONArray
-import org.json.JSONObject
 
 /**
- * Reads filesDir/records.json (written by the whoogoo CLI) and upserts it into Health Connect.
- * Progress goes to logcat under the "Whoogoo" tag; the CLI stops at "done" or a line starting with "error:".
+ * Converts a WHOOP export zip and upserts it into Health Connect. The zip comes from the file
+ * picker, or from the CLI, which copies it into filesDir and starts the activity with its name in
+ * the "zip" extra. Progress goes to logcat under the "Whoogoo" tag; the CLI stops at "done" or a
+ * line starting with "error:", then pulls filesDir/records.json for `verify`.
  */
 class MainActivity : ComponentActivity() {
     // The manifest is the only list of Health Connect permissions.
@@ -41,18 +33,44 @@ class MainActivity : ComponentActivity() {
             .requestedPermissions.orEmpty().filter { it.startsWith("android.permission.health.") }.toSet()
     }
 
-    private lateinit var out: TextView
     private val client by lazy { HealthConnectClient.getOrCreate(this) }
+    private var ui by mutableStateOf<Ui>(Ui.Idle)
+    private var pending: (() -> InputStream)? = null
+
     private val requestPermissions =
         registerForActivityResult(PermissionController.createRequestPermissionResultContract()) { granted ->
             val denied = permissions - granted
-            if (denied.isEmpty()) import() else log("error: permissions denied: $denied")
+            if (denied.isEmpty()) import() else fail("permissions denied: $denied")
         }
+
+    private val pickZip = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let { start { contentResolver.openInputStream(it) ?: error("cannot open $it") } }
+    }
+
+    // Providers label zips differently; mail clients and Drive often fall back to octet-stream.
+    private val zipTypes = arrayOf("application/zip", "application/x-zip-compressed", "application/octet-stream")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        out = TextView(this).apply { setPadding(32, 32, 32, 32) }
-        setContentView(ScrollView(this).apply { addView(out) })
+        enableEdgeToEdge()
+        setContent { App(ui, onPick = { pickZip.launch(zipTypes) }, onReset = { ui = Ui.Idle }) }
+        onNewIntent(intent)
+    }
+
+    /** The CLI's launch; singleTop delivers it here even while the activity is already showing. */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        // Exported activity: the extra is untrusted, so only a plain file name inside filesDir counts.
+        intent.getStringExtra("zip")?.takeIf {
+            '/' !in it
+        }?.let { name -> start { File(filesDir, name).inputStream() } }
+    }
+
+    private fun start(open: () -> InputStream) {
+        pending = open
+        if (HealthConnectClient.getSdkStatus(this) != HealthConnectClient.SDK_AVAILABLE) {
+            return fail("Health Connect is not available on this device")
+        }
         lifecycleScope.launch {
             if (client.permissionController.getGrantedPermissions().containsAll(permissions)) {
                 import()
@@ -62,165 +80,34 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun import() = lifecycleScope.launch {
-        val file = File(filesDir, "records.json")
-        if (!file.exists()) return@launch log("error: missing ${file.path}")
-        val records = runCatching {
-            val arr = JSONArray(file.readText())
-            (0 until arr.length()).map { toRecord(arr.getJSONObject(it)) }
-        }.getOrElse { return@launch log("error: bad records.json: $it") }
-        log("parsed ${records.size} records")
-        var done = 0
-        for (chunk in records.chunked(500)) {
-            runCatching { client.insertRecords(chunk) }
-                .onFailure {
-                    log("error: insert failed at $done: $it")
-                    return@launch
-                }
-            done += chunk.size
-            log("inserted $done/${records.size}")
+    private fun import() = lifecycleScope.launch(Dispatchers.IO) {
+        val open = pending ?: return@launch
+        try {
+            ui = Ui.Reading
+            val records = open().use { convert(readExport(it)) }
+            File(filesDir, "records.json").writeText(JSONArray(records).toString(1))
+            val counts = counts(records)
+            log(countsString(counts))
+            val from = records.first().time().toLocalDate()
+            val to = records.last().time().toLocalDate()
+            var done = 0
+            for (chunk in records.chunked(100)) {
+                ui = Ui.Running(done, records.size, from, to, chunk.first().time().toLocalDate())
+                client.insertRecords(chunk.map(::toRecord))
+                done += chunk.size
+                log("inserted $done/${records.size}")
+            }
+            ui = Ui.Done(counts)
+            log("done")
+        } catch (e: Exception) {
+            fail(e.message ?: e.toString())
         }
-        log("done")
     }
 
-    private fun log(msg: String) {
-        android.util.Log.i("Whoogoo", msg)
-        out.append("$msg\n")
+    private fun fail(message: String) {
+        log("error: $message")
+        ui = Ui.Failed(message)
     }
-}
 
-private val whoop = Device(manufacturer = "WHOOP", type = Device.TYPE_FITNESS_BAND)
-
-/** Resolves e.g. "BIKING" to ExerciseSessionRecord.EXERCISE_TYPE_BIKING; the JSON carries constant suffixes. */
-private fun constant(cls: Class<*>, prefix: String, name: String): Int = cls.getField("$prefix$name").getInt(null)
-
-private fun JSONObject.at(key: String): OffsetDateTime = OffsetDateTime.parse(getString(key))
-
-private fun toRecord(o: JSONObject): Record {
-    val meta = Metadata.autoRecorded(clientRecordId = o.getString("id"), device = whoop)
-    return when (val type = o.getString("type")) {
-        "sleep" -> {
-            val s = o.at("start")
-            val e = o.at("end")
-            val stages = o.getJSONArray("stages")
-            SleepSessionRecord(
-                startTime = s.toInstant(),
-                startZoneOffset = s.offset,
-                endTime = e.toInstant(),
-                endZoneOffset = e.offset,
-                title = o.getString("title"),
-                stages = (0 until stages.length()).map { stages.getJSONObject(it) }.map {
-                    SleepSessionRecord.Stage(
-                        startTime = it.at("start").toInstant(),
-                        endTime = it.at("end").toInstant(),
-                        stage = constant(SleepSessionRecord::class.java, "STAGE_TYPE_", it.getString("stage"))
-                    )
-                },
-                metadata = meta
-            )
-        }
-
-        "exercise" -> {
-            val s = o.at("start")
-            val e = o.at("end")
-            ExerciseSessionRecord(
-                startTime = s.toInstant(),
-                startZoneOffset = s.offset,
-                endTime = e.toInstant(),
-                endZoneOffset = e.offset,
-                exerciseType = constant(
-                    ExerciseSessionRecord::class.java,
-                    "EXERCISE_TYPE_",
-                    o.getString("exerciseType")
-                ),
-                title = o.getString("title"),
-                metadata = meta
-            )
-        }
-
-        "active_calories" -> {
-            val s = o.at("start")
-            val e = o.at("end")
-            ActiveCaloriesBurnedRecord(
-                startTime = s.toInstant(),
-                startZoneOffset = s.offset,
-                endTime = e.toInstant(),
-                endZoneOffset = e.offset,
-                energy = Energy.kilocalories(o.getDouble("kcal")),
-                metadata = meta
-            )
-        }
-
-        "total_calories" -> {
-            val s = o.at("start")
-            val e = o.at("end")
-            TotalCaloriesBurnedRecord(
-                startTime = s.toInstant(),
-                startZoneOffset = s.offset,
-                endTime = e.toInstant(),
-                endZoneOffset = e.offset,
-                energy = Energy.kilocalories(o.getDouble("kcal")),
-                metadata = meta
-            )
-        }
-
-        "resting_heart_rate" -> o.at("time").let {
-            RestingHeartRateRecord(
-                time = it.toInstant(),
-                zoneOffset = it.offset,
-                beatsPerMinute = o.getLong("bpm"),
-                metadata = meta
-            )
-        }
-
-        "hrv" -> o.at("time").let {
-            HeartRateVariabilityRmssdRecord(
-                time = it.toInstant(),
-                zoneOffset = it.offset,
-                heartRateVariabilityMillis = o.getDouble("ms"),
-                metadata = meta
-            )
-        }
-
-        "spo2" -> o.at("time").let {
-            OxygenSaturationRecord(
-                time = it.toInstant(),
-                zoneOffset = it.offset,
-                percentage = Percentage(o.getDouble("pct")),
-                metadata = meta
-            )
-        }
-
-        "respiratory_rate" -> o.at("time").let {
-            RespiratoryRateRecord(
-                time = it.toInstant(),
-                zoneOffset = it.offset,
-                rate = o.getDouble("rpm"),
-                metadata = meta
-            )
-        }
-
-        "skin_temperature" -> {
-            val s = o.at("start")
-            val e = o.at("end")
-            SkinTemperatureRecord(
-                startTime = s.toInstant(),
-                startZoneOffset = s.offset,
-                endTime = e.toInstant(),
-                endZoneOffset = e.offset,
-                baseline = Temperature.celsius(o.getDouble("baseline")),
-                // Health Connect requires delta times strictly inside the record interval.
-                deltas = listOf(
-                    SkinTemperatureRecord.Delta(
-                        time = e.toInstant().minusSeconds(1),
-                        delta = TemperatureDelta.celsius(o.getDouble("delta"))
-                    )
-                ),
-                measurementLocation = SkinTemperatureRecord.MEASUREMENT_LOCATION_WRIST,
-                metadata = meta
-            )
-        }
-
-        else -> error("unknown record type $type")
-    }
+    private fun log(msg: String) = Log.i("Whoogoo", msg)
 }
