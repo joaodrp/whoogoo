@@ -1,0 +1,29 @@
+# Git hooks. One-time setup per clone: `mise run hooks`.
+pre-commit:
+  parallel: true
+  commands:
+    gitleaks:
+      run: gitleaks protect --staged --redact
+    gofmt:
+      glob: "*.go"
+      run: test -z "$(gofmt -l {staged_files})" || { gofmt -l {staged_files}; echo "run gofmt -w"; exit 1; }
+    golangci-lint:
+      glob: "*.go"
+      run: golangci-lint run
+    ktlint:
+      glob: "*.{kt,kts}"
+      run: ktlint {staged_files}
+
+commit-msg:
+  commands:
+    conventional:
+      run: |
+        grep -qE '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([^)]+\))?!?: .+' "{1}" \
+          || { echo "commit message must follow Conventional Commits: type(scope)?: summary"; exit 1; }
+
+pre-push:
+  commands:
+    go-test:
+      run: go vet ./... && go test ./...
+    apk:
+      run: ./gradlew -q assembleDebug
