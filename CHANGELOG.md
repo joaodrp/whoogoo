@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0](https://github.com/joaodrp/whoogoo/compare/v0.2.1...v0.3.0) (2026-09-04)
+
+
+### Features
+
+* **app:** ultramarine design language ([994aad6](https://github.com/joaodrp/whoogoo/commit/994aad6a819c46086e806930e5d5f13caea793d2))
+* make the app standalone and let the CLI drive it ([1320ff4](https://github.com/joaodrp/whoogoo/commit/1320ff4d6fbe76ce948b0f6abe369459129eb85c))
+
 ## [0.2.1](https://github.com/joaodrp/whoogoo/compare/v0.2.0...v0.2.1) (2026-09-04)
 
 
