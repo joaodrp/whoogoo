@@ -1,10 +1,31 @@
-# Contributor setup. Users install the CLI instead: see README.
+# Contributor setup. Users install the binary instead: see README.
 [tools]
+go = "1.25"
 java = "21"
-python = "3"
+golangci-lint = "2"
+ktlint = "1"
+lefthook = "2"
+gitleaks = "8"
+
+[tasks.hooks]
+description = "Install the git hooks (once per clone)"
+run = "git config core.hooksPath .git/hooks && lefthook install"
+
+[tasks.fmt]
+run = "gofmt -w . && ktlint -F 'app/src/**/*.kt' '*.kts' 'app/*.kts'"
+
+[tasks.lint]
+run = "golangci-lint run && ktlint 'app/src/**/*.kt' '*.kts' 'app/*.kts'"
 
 [tasks.test]
-run = "python3 -m unittest discover -s tests -v"
+run = "go vet ./... && go test ./..."
+
+[tasks.check]
+description = "Everything CI runs, minus the APK build"
+depends = ["lint", "test"]
+
+[tasks.build]
+run = "go build -o whoogoo ."
 
 [tasks.apk]
 description = "Build the importer APK"
@@ -12,4 +33,4 @@ run = "./gradlew -q assembleDebug"
 
 [tasks.dev]
 description = "Run the CLI from source, e.g. mise run dev -- import --apk app/build/outputs/apk/debug/app-debug.apk export.zip"
-run = "python3 -m whoogoo"
+run = "go run ."

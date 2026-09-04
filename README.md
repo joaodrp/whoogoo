@@ -32,32 +32,39 @@ Re-running an import updates records instead of duplicating them.
 
 ## Prerequisites
 
-- Python 3.10+ (or [mise](https://mise.jdx.dev), which installs it for you)
-- Android SDK with the emulator. Get `sdkmanager` first: on macOS
-  `brew install --cask android-commandlinetools` (needs a JDK, e.g. `mise use -g java@21`); elsewhere
+- Android SDK command-line tools. `whoogoo setup` installs everything else (emulator,
+  platform-tools, the Android 16 Play Store image, about 2 GB) and, on macOS with Homebrew, offers to
+  install the command-line tools themselves. Elsewhere get them from
   [Android Studio](https://developer.android.com/studio) or the
-  [command-line tools](https://developer.android.com/studio#command-line-tools-only) with
-  `ANDROID_HOME` set. Then run `whoogoo doctor`: it lists what is still missing (emulator,
-  platform-tools, the Android 16 Play Store image) with the exact `sdkmanager` command to install it.
+  [command-line tools](https://developer.android.com/studio#command-line-tools-only) download, with
+  `ANDROID_HOME` set. A JDK is needed for Google's SDK tools; `setup` offers `mise use -g java@21`
+  if mise is present.
 - Linux: access to `/dev/kvm`. macOS: nothing extra.
 - A Google account already set up with Google Health
 
 ## Install
 
+whoogoo is a single static binary for Linux and macOS (x86_64 and arm64).
+
 ```sh
-mise use -g pipx:whoogoo                                      # or: pipx install whoogoo / uvx whoogoo
-uv tool install git+https://github.com/joaodrp/whoogoo        # or straight from the repo
+mise use -g github:joaodrp/whoogoo
 ```
+
+or download the archive for your platform from the
+[latest release](https://github.com/joaodrp/whoogoo/releases/latest) and put `whoogoo` on your `PATH`.
 
 ## Steps
 
 Request your export in the WHOOP app (More -> App settings -> Data export) and wait for the email.
 
 ```sh
-whoogoo doctor                          # checks the SDK; prints the sdkmanager command for anything missing
-whoogoo emu                             # first run creates a Pixel 10 / Android 16 device, then boots it
+whoogoo setup                           # checks the SDK, offers to install what is missing, creates the device
+whoogoo emu                             # boots the Pixel 10 / Android 16 emulator; leave it running
 whoogoo import my_whoop_data.zip        # in another terminal: converts, installs the importer, loads everything
 ```
+
+`whoogoo doctor` is the read-only version of `setup`, and `setup -y` runs the fixes without asking.
+Every command has `--help`; `whoogoo completion <shell>` prints shell completions.
 
 `import` prints progress and ends with `done`. Health Connect on the emulator now holds your data:
 search for "Health Connect" in the emulator's Settings and open Data and access.
@@ -96,8 +103,8 @@ imported, per type: matched, value differs, missing. One-time setup:
    export GOOGLE_HEALTH_CLIENT_SECRET=...
    ```
 
-The first run opens a browser for consent (read-only scopes) and caches the token under
-`~/.config/whoogoo`. Calories are not checked: the API only exposes them as daily rollups.
+The first run opens a browser for consent (read-only scopes) and prints where it cached the token.
+Calories are not checked: the API only exposes them as daily rollups.
 
 ## Start over
 
@@ -107,21 +114,25 @@ app data), or delete the virtual device and run `whoogoo emu` again.
 ## Development
 
 ```sh
-mise install        # JDK 21, Python
-mise run test
+mise install        # Go, JDK 21, linters, lefthook
+mise run hooks      # git hooks: gitleaks, gofmt, golangci-lint, ktlint, Conventional Commits, tests on push
+mise run check      # lint + test, what CI runs
+mise run fmt
 mise run apk        # builds app/build/outputs/apk/debug/app-debug.apk
 mise run dev -- import --apk app/build/outputs/apk/debug/app-debug.apk my_whoop_data.zip
 ```
 
+Standard library plus cobra for the command line.
+
 | Path | Role |
 |---|---|
-| `whoogoo/convert.py` | stdlib-only converter, WHOOP CSVs to Health Connect records as JSON |
-| `whoogoo/cli.py` | doctor, emulator, import, verify; drives the SDK tools and adb |
-| `whoogoo/verify.py` | Google Health API client (OAuth loopback flow, stdlib only) and the diff |
+| `convert.go` | WHOOP CSVs to Health Connect records as JSON |
+| `setup.go` | SDK checks, interactive setup, virtual device, emulator |
+| `importer.go` | APK download and install, record loading, permission grants, log streaming |
+| `verify.go` | Google Health API client (OAuth loopback flow) and the diff |
 | `app/` | minimal Android app that upserts the records into Health Connect |
 | `app/whoogoo.jks` | throwaway signing key, committed so every release installs over the previous one |
 
 Releases are automated with release-please from Conventional Commits: every push to `main`
-updates a release PR with the version bump and changelog. Merging that PR tags the release, builds
-the APK and attaches it (the CLI downloads it from there), and publishes the package to PyPI
-through trusted publishing.
+updates a release PR with the version bump and changelog. Merging that PR tags the release and
+attaches the binaries for each platform plus the APK (the CLI downloads it from there).
