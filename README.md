@@ -33,10 +33,10 @@ Re-running an import updates records instead of duplicating them.
 ## Prerequisites
 
 - Python 3.10+ (or [mise](https://mise.jdx.dev), which installs it for you)
-- Android SDK with the emulator. Either install [Android Studio](https://developer.android.com/studio)
-  and open its SDK Manager once, or install the
-  [command-line tools](https://developer.android.com/studio#command-line-tools-only) plus a JDK and
-  set `ANDROID_HOME`. `whoogoo doctor` tells you exactly what is missing.
+- Android SDK with the emulator. macOS: `brew install --cask android-commandlinetools`. Otherwise
+  install [Android Studio](https://developer.android.com/studio) and open its SDK Manager once, or
+  the [command-line tools](https://developer.android.com/studio#command-line-tools-only) plus a JDK
+  with `ANDROID_HOME` set. `whoogoo doctor` tells you exactly what is missing and how to get it.
 - Linux: access to `/dev/kvm`. macOS: nothing extra.
 - A Google account already set up with Google Health
 
