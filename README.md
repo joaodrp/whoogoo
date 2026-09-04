@@ -72,6 +72,25 @@ In the emulator window:
 Google Health computes its own sleep score and Cardio Load from first-party devices only, so
 imported nights show duration and stages but no score.
 
+## Verify the sync (optional)
+
+`mise run verify` reads your account through the Google Health API and diffs it against
+`records.json`, per type: matched, value differs, missing. One-time setup:
+
+1. In the [Cloud Console](https://console.cloud.google.com) create a project and enable the
+   "Google Health API".
+2. OAuth consent screen: External, publishing status Testing, add your Google account as a test user.
+   No verification is needed for personal use.
+3. Credentials -> Create OAuth client ID -> Desktop app. Put the values in `.env` (gitignored):
+
+   ```
+   GOOGLE_HEALTH_CLIENT_ID=...
+   GOOGLE_HEALTH_CLIENT_SECRET=...
+   ```
+
+The first run opens a browser for consent (read-only scopes) and caches the token locally.
+Calories are not checked: the API only exposes them as daily rollups.
+
 ## Re-running
 
 `mise run convert` and `mise run import` are idempotent. To wipe and start over, delete the app's

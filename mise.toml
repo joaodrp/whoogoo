@@ -7,6 +7,7 @@ python = "3"
 ABI = "{% if arch() == 'arm64' %}arm64-v8a{% else %}x86_64{% endif %}"
 AVD = "whoop"
 APP = "dev.joaodrp.whoopimport"
+_.file = ".env"
 
 [tasks.sdk]
 description = "Install the Android SDK packages this project needs (requires cmdline-tools in ANDROID_HOME)"
@@ -41,3 +42,7 @@ adb shell am start -n "$APP/.MainActivity"
 until adb logcat -d -s WhoopImport | grep -qE 'done|failed|denied|missing|bad record'; do sleep 2; done
 adb logcat -d -s WhoopImport
 """
+
+[tasks.verify]
+description = "Read back from the Google Health API and diff against records.json (needs .env, see README)"
+run = 'python3 verify.py records.json'

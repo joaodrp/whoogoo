@@ -13,3 +13,7 @@ local.properties
 
 # python
 __pycache__/
+
+# google health api credentials and token
+.env
+.google-health-token.json
