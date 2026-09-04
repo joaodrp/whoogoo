@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """Check that records.json reached the Google Health account, via the Google Health API (read-only).
 
-Usage: verify.py <records.json>
 Needs GOOGLE_HEALTH_CLIENT_ID and GOOGLE_HEALTH_CLIENT_SECRET (an OAuth "Desktop app" client from a
 Google Cloud project with the Google Health API enabled). The first run opens a browser for consent
-and caches the token in .google-health-token.json.
+and caches the token under ~/.config/whoogoo.
 """
 import json
 import os
@@ -21,7 +20,7 @@ from pathlib import Path
 API = "https://health.googleapis.com/v4/users/me/dataTypes"
 SCOPES = " ".join(f"https://www.googleapis.com/auth/googlehealth.{s}.readonly"
                   for s in ["sleep", "activity_and_fitness", "health_metrics_and_measurements"])
-TOKEN_FILE = Path(".google-health-token.json")
+TOKEN_FILE = Path.home() / ".config" / "whoogoo" / "token.json"
 
 
 # --- OAuth installed-app flow with loopback redirect, stdlib only ---
@@ -71,6 +70,7 @@ def access_token():
                 "refresh_token": tok["refresh_token"], "client_id": cid, "client_secret": secret,
                 "grant_type": "refresh_token"})}
         tok["expires_at"] = time.time() + tok["expires_in"]
+        TOKEN_FILE.parent.mkdir(parents=True, exist_ok=True)
         TOKEN_FILE.write_text(json.dumps(tok))
     return tok["access_token"]
 
@@ -206,6 +206,3 @@ def main(path):
         failed |= bool(missing)
     sys.exit(1 if failed else 0)
 
-
-if __name__ == "__main__":
-    main(sys.argv[1])

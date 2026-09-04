@@ -17,3 +17,7 @@ __pycache__/
 # google health api credentials and token
 .env
 .google-health-token.json
+
+# python packaging
+dist/
+*.egg-info/

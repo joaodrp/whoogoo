@@ -1,19 +1,19 @@
-# whoop-to-google-health
+# whoogoo
 
-Import your WHOOP data export into Google Health, no Android phone required.
+Import your WHOOP data export into Google Health. No Android phone needed.
 
 Google Health has no file import, and its cloud API cannot write vitals. Android Health Connect can
 write everything WHOOP exports that Google Health understands, and the Google Health Android app
-syncs Health Connect data, history included, into your account. This repo runs that chain on an
-Android emulator:
+syncs Health Connect data, history included, into your account. whoogoo runs that chain on an
+Android emulator on your computer:
 
 ```
-WHOOP export zip -> whoop2hc.py -> records.json -> importer app -> Health Connect -> Google Health app -> your account
+WHOOP export zip -> whoogoo -> Health Connect (emulator) -> Google Health app -> your account
 ```
 
 ## What gets imported
 
-| WHOOP | Health Connect record | Note |
+| WHOOP | Google Health | Note |
 |---|---|---|
 | Sleep onset, wake onset, stage minutes | Sleep session with stages | WHOOP exports stage totals only; stages are written as contiguous blocks with exact totals, so the hypnogram shape is synthetic |
 | Respiratory rate | Respiratory rate | stamped at wake time |
@@ -28,36 +28,36 @@ WHOOP export zip -> whoop2hc.py -> records.json -> importer app -> Health Connec
 Not imported because Health Connect has no matching type: recovery, strain, sleep
 performance/need/debt/efficiency/consistency, HR zones, max/average HR, journal entries.
 
-Records carry a deterministic client ID, so re-running the import updates instead of duplicating.
+Re-running an import updates records instead of duplicating them.
 
 ## Prerequisites
 
-- [mise](https://mise.jdx.dev) (installs the pinned JDK and Python)
-- Android SDK command-line tools with `ANDROID_HOME` set and `$ANDROID_HOME/cmdline-tools/latest/bin`
-  plus `$ANDROID_HOME/platform-tools` on `PATH`. Android Studio's SDK Manager installs them, or
-  download them from https://developer.android.com/studio#command-line-tools-only.
-- Linux: `/dev/kvm` access for the emulator. macOS: nothing extra.
-- A Google account already set up with Google Health (the one your Fitbit is on)
+- Python 3.10+ (or [mise](https://mise.jdx.dev), which installs it for you)
+- Android SDK with the emulator. Either install [Android Studio](https://developer.android.com/studio)
+  and open its SDK Manager once, or install the
+  [command-line tools](https://developer.android.com/studio#command-line-tools-only) plus a JDK and
+  set `ANDROID_HOME`. `whoogoo doctor` tells you exactly what is missing.
+- Linux: access to `/dev/kvm`. macOS: nothing extra.
+- A Google account already set up with Google Health
 
-## Steps
+## Install
 
 ```sh
-git clone https://github.com/joaodrp/whoop-to-google-health && cd whoop-to-google-health
-mise install            # JDK 21, Python 3
-mise run sdk            # Android platform, build tools, emulator, Play Store system image
-mise run avd            # create the virtual device
-mise run emu            # boot it; leave this running
+mise use -g pipx:whoogoo     # or: pipx install whoogoo, or run without installing: uvx whoogoo
 ```
+
+## Steps
 
 Request your export in the WHOOP app (More -> App settings -> Data export) and wait for the email.
 
 ```sh
-mise run convert ~/Downloads/my_whoop_data_2026_09_04.zip   # writes records.json, prints counts
-mise run import                                              # builds, installs, loads, imports
+whoogoo doctor                          # checks the SDK; prints the sdkmanager command for anything missing
+whoogoo emu                             # first run creates a Pixel 10 / Android 16 device, then boots it
+whoogoo import my_whoop_data.zip        # in another terminal: converts, installs the importer, loads everything
 ```
 
-The import task streams the app log and ends with `done`. Health Connect on the emulator now holds
-your data (Settings -> Health Connect -> Data and access).
+`import` prints progress and ends with `done`. Health Connect on the emulator now holds your data
+(Settings -> Health Connect -> Data and access).
 
 ## Sync to your Google account
 
@@ -67,40 +67,51 @@ In the emulator window:
 2. Install Google Health and sign in.
 3. In Google Health: Connections -> Health Connect (or Partner apps -> Set up Health Connect). Allow
    all data types, then under Additional access enable Historical data and background access.
-4. Leave the emulator running until the app finishes syncing. Old data can take a while to appear.
+4. Leave the emulator running until it finishes syncing. Old data can take a while to appear.
 
 Google Health computes its own sleep score and Cardio Load from first-party devices only, so
 imported nights show duration and stages but no score.
 
 ## Verify the sync (optional)
 
-`mise run verify` reads your account through the Google Health API and diffs it against
-`records.json`, per type: matched, value differs, missing. One-time setup:
+`whoogoo verify` reads your account through the Google Health API and diffs it against what was
+imported, per type: matched, value differs, missing. One-time setup:
 
 1. In the [Cloud Console](https://console.cloud.google.com) create a project and enable the
    "Google Health API".
 2. OAuth consent screen: External, publishing status Testing, add your Google account as a test user.
    No verification is needed for personal use.
-3. Credentials -> Create OAuth client ID -> Desktop app. Put the values in `.env` (gitignored):
+3. Credentials -> Create OAuth client ID -> Desktop app. Export the values:
 
+   ```sh
+   export GOOGLE_HEALTH_CLIENT_ID=...
+   export GOOGLE_HEALTH_CLIENT_SECRET=...
    ```
-   GOOGLE_HEALTH_CLIENT_ID=...
-   GOOGLE_HEALTH_CLIENT_SECRET=...
-   ```
 
-The first run opens a browser for consent (read-only scopes) and caches the token locally.
-Calories are not checked: the API only exposes them as daily rollups.
+The first run opens a browser for consent (read-only scopes) and caches the token under
+`~/.config/whoogoo`. Calories are not checked: the API only exposes them as daily rollups.
 
-## Re-running
+## Start over
 
-`mise run convert` and `mise run import` are idempotent. To wipe and start over, delete the app's
-data in Health Connect (Data and access -> App permissions -> WHOOP Import -> Delete app data), or
-`mise run avd` to recreate the device.
+Delete the app's data in Health Connect (Data and access -> App permissions -> Whoogoo -> Delete
+app data), or delete the virtual device and run `whoogoo emu` again.
 
-## Layout
+## Development
+
+```sh
+mise install        # JDK 21, Python
+mise run test
+mise run apk        # builds app/build/outputs/apk/debug/app-debug.apk
+mise run dev -- import --apk app/build/outputs/apk/debug/app-debug.apk my_whoop_data.zip
+```
 
 | Path | Role |
 |---|---|
-| `whoop2hc.py` | stdlib-only converter, WHOOP CSVs to Health Connect records as JSON |
-| `app/` | minimal Android app that upserts `records.json` into Health Connect |
-| `mise.toml` | pinned tools and the tasks above |
+| `whoogoo/convert.py` | stdlib-only converter, WHOOP CSVs to Health Connect records as JSON |
+| `whoogoo/cli.py` | doctor, emulator, import, verify; drives the SDK tools and adb |
+| `whoogoo/verify.py` | Google Health API client (OAuth loopback flow, stdlib only) and the diff |
+| `app/` | minimal Android app that upserts the records into Health Connect |
+| `app/whoogoo.jks` | throwaway signing key, committed so every release installs over the previous one |
+
+Releases: push a `v*` tag. CI builds the APK, attaches it to the GitHub release (the CLI downloads
+it from there), and publishes the package to PyPI through trusted publishing.

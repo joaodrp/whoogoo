@@ -11,5 +11,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "whoop-importer"
+rootProject.name = "whoogoo"
 include(":app")

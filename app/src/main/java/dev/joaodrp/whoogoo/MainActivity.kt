@@ -1,4 +1,4 @@
-package dev.joaodrp.whoopimport
+package dev.joaodrp.whoogoo
 
 import android.os.Bundle
 import android.widget.ScrollView
@@ -74,7 +74,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun log(msg: String) {
-        android.util.Log.i("WhoopImport", msg)
+        android.util.Log.i("Whoogoo", msg)
         out.append("$msg\n")
     }
 }

@@ -1,12 +1,8 @@
 #!/usr/bin/env python3
-"""Convert a WHOOP data export (zip or unzipped dir) into Health Connect records as JSON.
-
-Usage: whoop2hc.py <my_whoop_data.zip|dir> <records.json>
-"""
+"""Convert a WHOOP data export (zip or unzipped dir) into Health Connect records as JSON."""
 import csv
 import io
 import json
-import sys
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -143,12 +139,13 @@ def check(records):
             assert all(a["end"] == b["start"] for a, b in zip(r["stages"], r["stages"][1:])), r
 
 
-if __name__ == "__main__":
-    src, out = sys.argv[1:3]
+def write(src, out):
+    """Convert src, validate, write JSON to out. Returns record counts per type."""
     records = convert(src)
     check(records)
+    Path(out).parent.mkdir(parents=True, exist_ok=True)
     Path(out).write_text(json.dumps(records, indent=1))
     counts = {}
     for r in records:
         counts[r["type"]] = counts.get(r["type"], 0) + 1
-    print(f"{len(records)} records -> {out}", counts)
+    return counts

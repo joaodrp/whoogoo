@@ -14,7 +14,7 @@
         <package android:name="com.google.android.apps.healthdata" />
     </queries>
 
-    <application android:label="WHOOP Import">
+    <application android:label="Whoogoo">
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
