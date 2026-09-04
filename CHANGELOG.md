@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1](https://github.com/joaodrp/whoogoo/compare/v0.2.0...v0.2.1) (2026-09-04)
+
+
+### Bug Fixes
+
+* launch SDK tools with the SDK root exported ([849b6fb](https://github.com/joaodrp/whoogoo/commit/849b6fbbf98aa0222d71bc4f6a67538bdc6e3534))
+* version the APK asset and fetch the one matching the CLI ([5237260](https://github.com/joaodrp/whoogoo/commit/523726035e0e3d6a8443bc2861f353d10bee6785))
+
 ## [0.2.0](https://github.com/joaodrp/whoogoo/compare/v0.1.0...v0.2.0) (2026-09-04)
 
 
