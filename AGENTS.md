@@ -33,8 +33,8 @@ access screen on the emulator (`adb exec-out screencap -p`). An agent shell has 
 Google sign-in, and therefore the account sync and `verify`, need the user at a windowed emulator.
 
 **Releases are automatic.** release-please reads Conventional Commits; the binaries and the APK
-are built on merge of its PR. `whoogoo import` downloads the APK from the latest release, which
-returns 404 while the repo is private.
+are built on merge of its PR. `whoogoo import` downloads the APK of its own version from that release (a `dev` build needs
+`--apk`), which returns 404 while the repo is private.
 
 **The signing key is public on purpose.** `app/whoogoo.jks` is a throwaway so every build installs
 over the previous one. Do not rotate it.

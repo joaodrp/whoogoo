@@ -16,7 +16,8 @@ import (
 )
 
 const (
-	apkURL  = "https://github.com/joaodrp/whoogoo/releases/latest/download/whoogoo.apk"
+	// The APK from the CLI's own release: app and CLI share the log protocol, so they ship together.
+	apkURL  = "https://github.com/joaodrp/whoogoo/releases/download/v%s/whoogoo_%s.apk"
 	timeout = 10 * time.Minute // emulator boot, and the import itself
 )
 
@@ -52,15 +53,19 @@ func downloadAPK() (string, error) {
 	if err := os.MkdirAll(cacheDir(), 0o755); err != nil {
 		return "", err
 	}
+	if version == "dev" {
+		return "", fmt.Errorf("development build: pass --apk with a local build (mise run apk)")
+	}
+	url := fmt.Sprintf(apkURL, version, version)
 	path := filepath.Join(cacheDir(), "whoogoo.apk")
-	fmt.Println("downloading", apkURL)
-	resp, err := http.Get(apkURL)
+	fmt.Println("downloading", url)
+	resp, err := http.Get(url)
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		return "", fmt.Errorf("%s: HTTP %d (pass --apk to use a local build)", apkURL, resp.StatusCode)
+		return "", fmt.Errorf("%s: HTTP %d (pass --apk to use a local build)", url, resp.StatusCode)
 	}
 	f, err := os.Create(path)
 	if err != nil {
