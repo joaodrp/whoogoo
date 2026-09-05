@@ -20,6 +20,7 @@ import java.io.File
 import java.io.InputStream
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONArray
@@ -104,7 +105,9 @@ class MainActivity : ComponentActivity() {
                 onImport = { (ui as? Ui.Choosing)?.let { importSelected(it.selected, it.from, it.until) } }
             )
         }
-        onNewIntent(intent)
+        // Only on a fresh start: the launch intent outlives recreation, and acting on it again
+        // would import or delete a second time behind the person's back.
+        if (savedInstanceState == null) onNewIntent(intent)
     }
 
     /** The CLI's launch; singleTop delivers it here even while the activity is already showing. */
@@ -112,17 +115,27 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         // Exported activity: the extra is untrusted, so only a plain file name inside filesDir counts.
         val name = intent.getStringExtra("zip")?.takeIf { '/' !in it } ?: return
-        cli = Cli(
-            skip = intent.getStringExtra("skip").orEmpty().split(',').filter { it.isNotBlank() }.toSet(),
-            from = intent.getStringExtra("from")?.let(LocalDate::parse),
-            until = intent.getStringExtra("until")?.let(LocalDate::parse),
-            delete = intent.getStringExtra("delete")?.takeIf { '/' !in it },
-            dry = intent.getBooleanExtra("dry", false)
-        )
+        // Consumed, so a redelivery of the same intent does nothing.
+        intent.removeExtra("zip")
+        cli = try {
+            Cli(
+                skip = intent.getStringExtra("skip").orEmpty().split(',').filter { it.isNotBlank() }.toSet(),
+                from = intent.getStringExtra("from")?.let(LocalDate::parse),
+                until = intent.getStringExtra("until")?.let(LocalDate::parse),
+                delete = intent.getStringExtra("delete")?.takeIf { '/' !in it },
+                dry = intent.getBooleanExtra("dry", false)
+            )
+        } catch (e: Exception) {
+            // A malformed date would otherwise throw here and leave the CLI waiting for a line
+            // that never comes.
+            return fail("bad launch arguments: ${e.message}")
+        }
         start { File(filesDir, name).inputStream() }
     }
 
     private fun start(open: () -> InputStream) {
+        if (ui is Ui.Reading || ui is Ui.Running) return
+        ui = Ui.Reading
         pending = open
         // What the last export had in common with another app says nothing about this one.
         already = null
@@ -154,6 +167,8 @@ class MainActivity : ComponentActivity() {
 
                 else -> insert(filter(converted, types - c.skip, c.from, c.until), c.dry)
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             fail(e.message ?: e.toString())
         }
@@ -206,21 +221,29 @@ class MainActivity : ComponentActivity() {
             already = alreadyThere(converted, found.days, found.workouts)
             log("already there: ${already?.size} of ${converted.size}, from ${found.apps}")
             redraw()
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             log("duplicate check failed: ${e.message}")
             redraw(denied = true)
         }
     }
 
-    private fun importSelected(types: Set<String>, from: LocalDate, until: LocalDate) =
+    private fun importSelected(types: Set<String>, from: LocalDate, until: LocalDate) {
+        // Taken on the thread the tap arrived on, so a second tap finds it already taken.
+        if (ui !is Ui.Choosing) return
+        ui = Ui.Reading
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val ids = already.orEmpty()
                 insert(filter(converted, types, from, until).filterNot { it["id"] in ids })
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 fail(e.message ?: e.toString())
             }
         }
+    }
 
     /**
      * Deletes records this app wrote, named by the client record ids it gave them. Only ids the
