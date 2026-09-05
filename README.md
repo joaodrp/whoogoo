@@ -5,7 +5,7 @@
   <img alt="whoogoo" width="88" src="docs/assets/mark-light.svg">
 </picture>
 
-# whoogoo
+### whoogoo
 
 [![CI](https://github.com/joaodrp/whoogoo/actions/workflows/ci.yml/badge.svg)](https://github.com/joaodrp/whoogoo/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
