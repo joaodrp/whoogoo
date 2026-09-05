@@ -2,9 +2,10 @@
 """Builds a fake WHOOP export, shaped like the real one but invented.
 
 The screenshots in the README are taken against this, so no real health data
-appears in the repository. Regenerate with:
+appears in the repository. The window ends just before the day it is run, so a
+regenerated sample always looks like an export someone took recently:
 
-    python3 docs/sample-export.py docs/my_whoop_data_sample.zip
+    python3 docs/sample-export.py my_whoop_data_sample.zip
 """
 import random
 import sys
@@ -28,11 +29,12 @@ ACTIVITIES = ["Running", "Cycling", "Weightlifting", "Yoga", "Swimming", "Hiking
 TZ = "UTC+01:00"
 
 
-def build(path, days=181, seed=7):
+def build(path, days=181, seed=7, end=None):
     random.seed(seed)
     fmt = lambda d: d.strftime("%Y-%m-%d %H:%M:%S")
     sleeps, cycles, workouts = [SLEEPS], [CYCLES], [WORKOUTS]
-    start = datetime(2024, 1, 1, 23, 40, 0)
+    end = end or datetime.now().replace(hour=23, minute=40, second=0, microsecond=0) - timedelta(days=4)
+    start = end - timedelta(days=days - 1)
     for i in range(days):
         onset = start + timedelta(days=i)
         wake = onset + timedelta(hours=random.uniform(6.5, 8.5))
