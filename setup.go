@@ -87,12 +87,22 @@ func tool(name string) string {
 	return p
 }
 
-// command builds an exec.Cmd with the SDK root exported, which the emulator requires to find
-// system images and platform-tools.
+// avdHome is where virtual devices live. Exported to every SDK tool because recent avdmanager
+// builds default to an XDG path the emulator does not read.
+func avdHome() string {
+	if h := os.Getenv("ANDROID_AVD_HOME"); h != "" {
+		return h
+	}
+	return filepath.Join(home(), ".android", "avd")
+}
+
+// command builds an exec.Cmd with the SDK root and AVD home exported, which the emulator
+// requires to find system images, platform-tools and the device.
 func command(cmd ...string) *exec.Cmd {
 	c := exec.Command(cmd[0], cmd[1:]...)
+	c.Env = append(os.Environ(), "ANDROID_AVD_HOME="+avdHome())
 	if root := sdkRoot(); root != "" {
-		c.Env = append(os.Environ(), "ANDROID_HOME="+root, "ANDROID_SDK_ROOT="+root)
+		c.Env = append(c.Env, "ANDROID_HOME="+root, "ANDROID_SDK_ROOT="+root)
 	}
 	return c
 }
@@ -238,11 +248,7 @@ func setup(yes bool) error {
 }
 
 func ensureAVD() error {
-	avdHome := os.Getenv("ANDROID_AVD_HOME")
-	if avdHome == "" {
-		avdHome = filepath.Join(home(), ".android", "avd")
-	}
-	if isDir(filepath.Join(avdHome, avd+".avd")) {
+	if isDir(filepath.Join(avdHome(), avd+".avd")) {
 		return nil
 	}
 	fmt.Printf("creating virtual device %s\n", avd)
