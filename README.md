@@ -50,6 +50,16 @@ for a different reason: the export does not contain it.
 
 Re-running an import updates records instead of duplicating them.
 
+## Do it in slices
+
+A few years of WHOOP is a few thousand records, and the slowest part is not the import but Google
+Health copying it afterwards. Start with a month, look at it in Google Health, then widen. The app
+has a date range on the choosing screen and the command line has `--from` and `--until`.
+
+Nothing is lost by going slowly, and nothing is duplicated by overlapping slices: each record
+carries an identifier derived from its WHOOP timestamp, so importing the same days again updates
+what is there.
+
 ## On an Android phone
 
 Request your export in the WHOOP app (More -> App settings -> Data export) and wait for the email.
@@ -129,9 +139,28 @@ On the phone, or in the emulator window:
 2. Open Google Health and sign in.
 3. In Google Health: Connections -> Health Connect (or Partner apps -> Set up Health Connect). Allow
    all data types, then under Additional access enable Historical data and background access.
-4. Leave the emulator running until it finishes syncing. Old data can take a while to appear.
+4. Leave Google Health open until it finishes syncing. See below for what that takes.
 
 Menu names follow Google's help pages and may differ slightly between app versions.
+
+### What the sync is like
+
+Google Health copies from Health Connect on its own schedule, and the copying is the slow half of
+this whole exercise. What that means in practice:
+
+- **It only moves while Google Health is open.** On the emulator, that means the emulator running
+  and the app in the foreground. Closing either pauses it.
+- **Nothing arrives until you open the app after an import.** An import on its own changes only
+  Health Connect.
+- **Allow real time.** Roughly a quarter of an hour for a month of data, around 140 records, and
+  about twice that for a quarter, around 420. A few years takes hours, which is the argument for
+  slices.
+- **Interrupting is safe.** A part-finished sync resumes where it stopped the next time the app
+  opens. Records already copied are not copied twice.
+- **On the emulator, only the first sign-in needs a window.** Once the account is set up,
+  `whoogoo emu --headless` syncs perfectly well and stays out of your way.
+
+A night's numbers appear on the date you woke up, because that is when WHOOP files them.
 
 Google Health computes Cardio Load and its other scores from first-party devices only, so imported
 history feeds the charts and trends without producing scores.
