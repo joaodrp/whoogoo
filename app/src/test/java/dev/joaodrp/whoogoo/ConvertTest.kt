@@ -139,4 +139,10 @@ class ConvertTest {
         assertEquals(0, records.count { it["type"] == "respiratory_rate" })
         assertTrue(records.isNotEmpty())
     }
+
+    @Test
+    fun readsAHeaderWithAByteOrderMark() {
+        val marked = csvs + ("sleeps.csv" to "\uFEFF" + SLEEPS)
+        assertEquals(convert(csvs).size, convert(marked).size)
+    }
 }

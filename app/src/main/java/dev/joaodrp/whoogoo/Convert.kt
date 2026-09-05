@@ -92,7 +92,8 @@ private fun splitCSV(line: String): List<String> {
 }
 
 private fun parseCSV(text: String): List<Row> {
-    val lines = text.lineSequence().filter { it.isNotBlank() }.map(::splitCSV).toList()
+    // A byte order mark would otherwise glue itself to the first header name.
+    val lines = text.removePrefix("\uFEFF").lineSequence().filter { it.isNotBlank() }.map(::splitCSV).toList()
     if (lines.isEmpty()) return emptyList()
     return lines.drop(1).map {
         require(it.size == lines[0].size) { "row has ${it.size} cells, header has ${lines[0].size}" }
@@ -194,13 +195,15 @@ fun convert(csvs: Map<String, String>): List<Record> {
 
 /** Rejects what Health Connect would refuse: duplicate client IDs and empty or inverted intervals. */
 private fun check(records: List<Record>) {
+    // Messages name the type and the row, never the id: an id carries a timestamp from the export,
+    // and these reach logcat and the CLI's output.
     val seen = HashSet<String>()
-    for (r in records) {
-        val id = r["id"] as String
-        require(seen.add(id)) { "duplicate record id $id" }
+    for ((i, r) in records.withIndex()) {
+        val type = r["type"] as String
+        require(seen.add(r["id"] as String)) { "two $type records for the same time (row $i)" }
         val start = r["start"] as String? ?: continue
         require(OffsetDateTime.parse(start).isBefore(OffsetDateTime.parse(r["end"] as String))) {
-            "$id: start is not before end"
+            "$type row $i: start is not before end"
         }
     }
 }
