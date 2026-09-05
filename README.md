@@ -58,8 +58,9 @@ Request your export in the WHOOP app (More -> App settings -> Data export) and w
    [latest release](https://github.com/joaodrp/whoogoo/releases/latest) and open it to install
    (Android asks you to allow installs from your browser or Files app).
 2. Open Whoogoo, choose the export zip and allow the Health Connect permissions it asks for. The
-   app lists what the export holds and how many records of each kind; untick anything you would
-   rather leave behind, then import.
+   app lists what the export holds and how many records of each kind. It takes everything by
+   default; untick what you would rather leave behind, and drag the two handles under "Change" to
+   import only part of the history, which is how you stop where another device took over.
 3. Follow [Sync to your Google account](#sync-to-your-google-account) below, in Google Health on
    the phone.
 

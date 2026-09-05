@@ -70,8 +70,14 @@ class MainActivity : ComponentActivity() {
                 ui,
                 onPick = { pickZip.launch(zipTypes) },
                 onReset = { ui = Ui.Idle },
-                onToggle = { type -> (ui as? Ui.Choosing)?.let { ui = it.toggle(type) } },
-                onImport = { (ui as? Ui.Choosing)?.let { importSelected(it.selected) } }
+                onToggle = { type ->
+                    (ui as? Ui.Choosing)?.let {
+                        val selected = if (type in it.selected) it.selected - type else it.selected + type
+                        choose(selected, it.from, it.until)
+                    }
+                },
+                onDates = { from, until -> (ui as? Ui.Choosing)?.let { choose(it.selected, from, until) } },
+                onImport = { (ui as? Ui.Choosing)?.let { importSelected(it.selected, it.from, it.until) } }
             )
         }
         onNewIntent(intent)
@@ -110,25 +116,38 @@ class MainActivity : ComponentActivity() {
         try {
             ui = Ui.Reading
             converted = open().use { convert(readExport(it)) }
-            val counts = counts(converted)
+            val types = counts(converted).keys
             val c = cli
             if (c == null) {
-                ui = Ui.Choosing(counts, counts.keys)
+                choose(types, converted.first().time().toLocalDate(), converted.last().time().toLocalDate())
             } else {
-                insert(filter(converted, counts.keys - c.skip, c.from, c.until))
+                insert(filter(converted, types - c.skip, c.from, c.until))
             }
         } catch (e: Exception) {
             fail(e.message ?: e.toString())
         }
     }
 
-    private fun importSelected(types: Set<String>) = lifecycleScope.launch(Dispatchers.IO) {
-        try {
-            insert(filter(converted, types))
-        } catch (e: Exception) {
-            fail(e.message ?: e.toString())
-        }
+    /** Redraws the choosing screen: the counts follow the dates, the ticks do not. */
+    private fun choose(selected: Set<String>, from: LocalDate, until: LocalDate) {
+        ui = Ui.Choosing(
+            counts = counts(filter(converted, counts(converted).keys, from, until)),
+            selected = selected,
+            from = from,
+            until = until,
+            first = converted.first().time().toLocalDate(),
+            last = converted.last().time().toLocalDate()
+        )
     }
+
+    private fun importSelected(types: Set<String>, from: LocalDate, until: LocalDate) =
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                insert(filter(converted, types, from, until))
+            } catch (e: Exception) {
+                fail(e.message ?: e.toString())
+            }
+        }
 
     /** Upserts the records and leaves them in records.json for the CLI's `verify`. */
     private suspend fun insert(records: List<Record>) {
