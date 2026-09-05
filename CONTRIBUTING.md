@@ -43,16 +43,16 @@ Health Connect duplicates. The record shape `Convert.kt` writes is the shape `ve
 change both or neither.
 
 **The manifest is the only list of permissions.** The app reads its own `requestedPermissions` at
-runtime rather than keeping a second list in code. Write permissions are requested up front and the
+runtime rather than keeping a second list in code. The app requests write permissions up front; the
 CLI grants them over adb for unattended imports. Read permissions exist only for the duplicate
-check and are never granted automatically, so that one always needs a person to tap through.
+check; the CLI never grants them automatically, so that one always needs a person to tap through.
 
 **Only what survives the trip is imported.** Sleep, skin temperature and calories were each
 measured and then deliberately dropped. The README's "Coverage" holds the
 reasoning. Do not add them back without new evidence that the numbers land correctly.
 
-**The signing key is not in the repository.** Releases are signed in CI from
-`ANDROID_KEYSTORE_BASE64` and `ANDROID_KEYSTORE_PASSWORD`. A build without those environment
+**The signing key is not in the repository.** CI signs releases from `ANDROID_KEYSTORE_BASE64` and
+`ANDROID_KEYSTORE_PASSWORD`. A build without those environment
 variables falls back to the local Android debug key, which is fine for development but means a
 locally built APK will not install over a released one: uninstall first.
 
@@ -77,14 +77,14 @@ the account sync and `whoogoo verify`, needs a windowed emulator and a human.
 
 The app also understands a `delete` extra naming a file of client record ids to remove instead of
 importing. That is a repair path, used to undo an import that should not have happened, and it has
-no CLI flag: it is reached with `adb shell am start ... --es delete <file>` against a file placed
-in the app's own directory. Only ids the export in hand produced are accepted.
+no CLI flag: reach it with `adb shell am start ... --es delete <file>` against a file placed in the
+app's own directory. It accepts only ids the export in hand produced.
 
 ## Commits and releases
 
 [Conventional Commits](https://www.conventionalcommits.org/), one logical change per commit.
 
-Releases are automated with release-please: every push to `main` updates a release PR carrying the
+Release-please automates releases: every push to `main` updates a release PR carrying the
 version bump and changelog. Merging it tags the release and attaches the binaries for each platform
 plus the APK. The CLI downloads the APK matching its own version, so the two ship together and
 their log protocol stays in step.

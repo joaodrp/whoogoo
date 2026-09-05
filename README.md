@@ -1,6 +1,21 @@
+<div align="center">
+
+<picture>
+  <source media="(prefers-color-scheme: dark)"
+          srcset="https://raw.githubusercontent.com/joaodrp/whoogoo/main/docs/assets/mark-dark.svg">
+  <img alt="whoogoo" width="88"
+       src="https://raw.githubusercontent.com/joaodrp/whoogoo/main/docs/assets/mark-light.svg">
+</picture>
+
 # whoogoo
 
+[![CI](https://github.com/joaodrp/whoogoo/actions/workflows/ci.yml/badge.svg)](https://github.com/joaodrp/whoogoo/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/joaodrp/whoogoo?logo=github)](https://github.com/joaodrp/whoogoo/releases/latest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Import your WHOOP history into Google Health.
+
+</div>
 
 - **The app** reads the export zip WHOOP emails you and writes it to Health Connect. The Google
   Health app takes it from there into your account.
@@ -75,8 +90,8 @@ The `whoogoo` command line tool sets up an Android emulator and runs the app on 
   install the command-line tools themselves. Elsewhere get them from
   [Android Studio](https://developer.android.com/studio) or the
   [command-line tools](https://developer.android.com/studio#command-line-tools-only) download, with
-  `ANDROID_HOME` set. A JDK is needed for Google's SDK tools; `setup` offers `mise use -g java@21`
-  if mise is present.
+  `ANDROID_HOME` set. Google's SDK tools need a JDK; `setup` offers `mise use -g java@21` if mise
+  is present.
 - Linux: access to `/dev/kvm`. macOS: nothing extra.
 - A Google account already set up with Google Health
 
@@ -124,7 +139,7 @@ On the phone, or in the emulator window:
 
 1. On the emulator: open the Play Store, sign in with your Google account and install Google Health.
    If your account uses passkeys for 2-step verification, choose "Try another way": the emulator has
-   no Bluetooth, so a passkey on your phone cannot be used. A backup code or an authenticator app
+   no Bluetooth, so it cannot use a passkey on your phone. A backup code or an authenticator app
    works.
 2. Open Google Health and sign in.
 3. In Google Health: Connections -> Health Connect (or Partner apps -> Set up Health Connect). Allow
@@ -147,7 +162,7 @@ Health's own schedule.
 - **Interrupting is safe.** A part-finished sync carries on later, and records already copied are
   not copied twice.
 - **On the emulator, only the first sign-in needs a window.** Once the account is set up,
-  `whoogoo emu --headless` syncs perfectly well and stays out of your way.
+  `whoogoo emu --headless` handles the sync and stays out of your way.
 
 A night's numbers appear on the date you woke up, because that is when WHOOP files them.
 
@@ -175,9 +190,9 @@ last `whoogoo import` loaded, per type: matched, value differs, missing. One-tim
 
 The first run opens a browser for consent (read-only scopes) and prints where it cached the token.
 
-Two limits worth knowing. Google stores the vitals as one value per day, so a day with both a nap
-and a night sleep is compared against their average and reported as a difference when both records
-are in fact correct. And where another app covers the same day, a match may be against that app's
+Two limits worth knowing: Google stores the vitals as one value per day, so it compares a day with
+both a nap and a night sleep against their average and reports a difference, even though both
+records are correct. And where another app covers the same day, a match may be against that app's
 copy rather than whoogoo's.
 
 ## Overlap with other apps
@@ -201,7 +216,7 @@ whoogoo writes to Health Connect. It reads from it only if you turn on "leave ou
 the choosing screen, which asks for read access at that moment and not before.
 
 The released APK is a debug build, because the command line needs that to talk to the app on an
-emulator. One consequence is worth knowing if you install it on a real phone: anyone who can reach
+emulator. Installing it on a real phone has one consequence worth knowing: anyone who can reach
 that phone over adb can read the app's own files, which briefly include the export you imported.
 The app deletes them once it has read them, and nothing is kept afterwards.
 
