@@ -177,7 +177,9 @@ fun readExport(zip: InputStream): Map<String, String> {
 /** Health Connect records from the export's CSVs, oldest first. */
 fun convert(csvs: Map<String, String>): List<Record> {
     val records = parts.flatMap { (file, fn) ->
-        val text = csvs[file] ?: throw IllegalArgumentException("$file not found in the export")
+        // An account with no workouts has no workouts.csv, which is not a broken export. A zip
+        // that is not one at all still fails below, on having produced nothing at all.
+        val text = csvs[file] ?: return@flatMap emptyList()
         try {
             fn(parseCSV(text))
         } catch (e: Exception) {
