@@ -191,7 +191,8 @@ func importCmd(zip, apk string, opts filters) error {
 	if err != nil {
 		return fmt.Errorf("pulling records.json: %w", err)
 	}
-	if err := os.WriteFile(recordsPath(), records, 0o644); err != nil {
+	// Vitals and workouts: readable by this user only, like the OAuth token beside it.
+	if err := os.WriteFile(recordsPath(), records, 0o600); err != nil {
 		return err
 	}
 	fmt.Println("records saved to", recordsPath(), "(for `whoogoo verify`)")
