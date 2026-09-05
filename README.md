@@ -210,6 +210,16 @@ It only sees this device's Health Connect. Data that reached your Google account
 as a phone syncing WHOOP through Apple Health, is invisible to it. For that, either untick the
 types or pass `--until` with the day before your other device took over.
 
+## What the app can see, and who else can
+
+whoogoo writes to Health Connect. It reads from it only if you turn on "leave out what I have" on
+the choosing screen, which asks for read access at that moment and not before.
+
+The released APK is a debug build, because the command line needs that to talk to the app on an
+emulator. One consequence is worth knowing if you install it on a real phone: anyone who can reach
+that phone over adb can read the app's own files, which briefly include the export you imported.
+The app deletes them once it has read them, and nothing is kept afterwards.
+
 ## Start over
 
 In Health Connect: App permissions -> Whoogoo -> See app data, then the delete icon, tick the

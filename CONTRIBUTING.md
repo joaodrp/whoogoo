@@ -56,6 +56,14 @@ reasoning. Do not add them back without new evidence that the numbers land corre
 variables falls back to the local Android debug key, which is fine for development but means a
 locally built APK will not install over a released one: uninstall first.
 
+## The APK is a debug build
+
+`assembleDebug`, deliberately: `adb run-as` only works on a debuggable package, and the CLI needs
+it to place the export and read the records back. Two things follow. Anyone with adb access to the
+device can read the app's files. And `constant()` in `HealthConnect.kt` resolves exercise types by
+reflection, so an `assembleRelease` under R8 would need a keep rule or every workout would fail to
+map.
+
 ## Testing
 
 `mise run check` proves the parsing and the matching. It does not prove anything about Health
