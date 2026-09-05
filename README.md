@@ -14,6 +14,8 @@ Import your WHOOP history into Google Health.
 
 </div>
 
+## How it works
+
 Give the app the export zip WHOOP emails you and it writes your history into Health Connect, from
 where the Google Health app carries it into your account: Google Health has no file import, and its
 API cannot write the daily vitals. Without an Android phone, the `whoogoo` command line tool runs
