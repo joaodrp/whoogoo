@@ -290,11 +290,18 @@ fun App(
                                     }
                                 }
                                 Text(
-                                    "Now open Google Health, connect Health Connect and allow historical data. " +
-                                        "Older records take a while to show up.",
+                                    "Open Google Health and leave it open while it copies this across. " +
+                                        "Older records take a while.",
                                     style = body,
                                     color = soft,
                                     modifier = Modifier.padding(top = 24.dp)
+                                )
+                                Text(
+                                    "First time only: in Google Health, connect Health Connect and allow " +
+                                        "historical data.",
+                                    style = small,
+                                    color = dim,
+                                    modifier = Modifier.padding(top = 12.dp)
                                 )
                             }
 
