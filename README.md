@@ -16,7 +16,7 @@ Connect is the only way in.
   <img src="docs/screenshots/03-months.png" width="31%" alt="Narrowing the import to a range of months">
 </p>
 
-## What gets imported
+## Imported
 
 | WHOOP | Google Health | Note |
 |---|---|---|
@@ -26,7 +26,7 @@ Connect is the only way in.
 | Respiratory rate | Respiratory rate | a night average, stamped at wake time |
 | Workout | Exercise session | the WHOOP activity mapped to a Health Connect exercise type, its name kept as the title |
 
-## What is left out, and why
+## Left out
 
 Anything whoogoo cannot carry across truthfully is left out. A wrong number in your health history
 is worse than a missing one.
@@ -147,7 +147,7 @@ On the phone, or in the emulator window:
 
 Menu names follow Google's help pages and may differ slightly between app versions.
 
-### What the sync is like
+### How long it takes
 
 Google Health copies from Health Connect on its own schedule, and the copying is the slow half of
 this whole exercise. What that means in practice:
@@ -169,7 +169,7 @@ A night's numbers appear on the date you woke up, because that is when WHOOP fil
 Google Health computes Cardio Load and its other scores from first-party devices only, so imported
 history feeds the charts and trends without producing scores.
 
-## Verify the sync (optional)
+## Check it arrived
 
 `whoogoo verify` reads your account through the Google Health API and diffs it against what the
 last `whoogoo import` loaded, per type: matched, value differs, missing. One-time setup:
@@ -195,7 +195,7 @@ and a night sleep is compared against their average and reported as a difference
 are in fact correct. And where another app covers the same day, a match may be against that app's
 copy rather than whoogoo's.
 
-## If you already have some of this data
+## Overlap with other apps
 
 Health Connect keeps one copy per app, so a day another app already wrote is stored twice, once
 from that app and once from whoogoo. Google Health then shows only one of them, the copy it already
@@ -210,7 +210,7 @@ It only sees this device's Health Connect. Data that reached your Google account
 as a phone syncing WHOOP through Apple Health, is invisible to it. For that, either untick the
 types or pass `--until` with the day before your other device took over.
 
-## What the app can see, and who else can
+## Privacy
 
 whoogoo writes to Health Connect. It reads from it only if you turn on "leave out what I have" on
 the choosing screen, which asks for read access at that moment and not before.

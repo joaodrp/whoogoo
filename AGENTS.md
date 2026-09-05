@@ -35,7 +35,7 @@ the manifest at runtime, so the manifest is the only list; the CLI grants the wr
 and never the read ones, which keeps the duplicate check an explicit choice.
 
 **Only what survives the trip is imported.** Sleep, skin temperature and calories were all measured
-and then deliberately dropped; the README's "What is left out, and why" holds the reasoning and the
+and then deliberately dropped; the README's "Left out" holds the reasoning and the
 evidence. Do not add them back without new evidence that the numbers land correctly.
 
 **Run it for real.** `mise run check` proves parsing and matching, nothing else. The end-to-end
