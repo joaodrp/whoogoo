@@ -121,10 +121,17 @@ func accessToken() (string, error) {
 		} else {
 			fresh, err := exchange(url.Values{"refresh_token": {t.RefreshToken}, "client_id": {clientID},
 				"client_secret": {secret}, "grant_type": {"refresh_token"}})
-			if err != nil {
-				return "", err
+			switch {
+			// A refresh token that has been revoked, or issued by a client since rotated, can
+			// never be refreshed again. Sign in rather than failing for ever on a cached file.
+			case err != nil:
+				fmt.Println("could not refresh the cached token, signing in again")
+				if t, err = login(clientID, secret); err != nil {
+					return "", err
+				}
+			default:
+				t.AccessToken, t.ExpiresIn = fresh.AccessToken, fresh.ExpiresIn
 			}
-			t.AccessToken, t.ExpiresIn = fresh.AccessToken, fresh.ExpiresIn
 		}
 		t.ExpiresAt = float64(time.Now().Unix()) + t.ExpiresIn
 		data, _ := json.Marshal(t)
