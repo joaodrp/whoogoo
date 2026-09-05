@@ -29,10 +29,11 @@ ACTIVITIES = ["Running", "Cycling", "Weightlifting", "Yoga", "Swimming", "Hiking
 TZ = "UTC+01:00"
 
 
-def build(path, days=181, seed=7, end=None):
+def build(path, days=610, seed=7, end=None):
     random.seed(seed)
     fmt = lambda d: d.strftime("%Y-%m-%d %H:%M:%S")
     sleeps, cycles, workouts = [SLEEPS], [CYCLES], [WORKOUTS]
+    # About twenty months, so the sample crosses a new year the way a real migration does.
     end = end or datetime.now().replace(hour=23, minute=40, second=0, microsecond=0) - timedelta(days=4)
     start = end - timedelta(days=days - 1)
     for i in range(days):
