@@ -1,10 +1,8 @@
 <div align="center">
 
 <picture>
-  <source media="(prefers-color-scheme: dark)"
-          srcset="https://raw.githubusercontent.com/joaodrp/whoogoo/main/docs/assets/mark-dark.svg">
-  <img alt="whoogoo" width="88"
-       src="https://raw.githubusercontent.com/joaodrp/whoogoo/main/docs/assets/mark-light.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/mark-dark.svg">
+  <img alt="whoogoo" width="88" src="docs/assets/mark-light.svg">
 </picture>
 
 # whoogoo
