@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 48 48" role="img" aria-label="whoogoo">
-  <title>whoogoo</title>
-  <!-- A record leaving its ring, the same mark the app and its launcher icon use. -->
-  <path d="M24,24 m-13,0 a13,13 0 1 1 26,0 a13,13 0 1 1 -26,0" fill="none" stroke="#1E2BFF" stroke-width="5.5"/>
-  <path d="M24,21.25 h17 a2.75,2.75 0 0 1 0,5.5 h-17 Z" fill="#1E2BFF"/>
-</svg>

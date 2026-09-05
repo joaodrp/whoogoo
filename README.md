@@ -1,13 +1,12 @@
 <div align="center">
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/mark-dark.svg">
-  <img alt="whoogoo" width="88" src="docs/assets/mark-light.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.png">
+  <img alt="whoogoo" width="300" src="docs/assets/logo-light.png">
 </picture>
 
-### whoogoo
-
 [![CI](https://github.com/joaodrp/whoogoo/actions/workflows/ci.yml/badge.svg)](https://github.com/joaodrp/whoogoo/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/joaodrp/whoogoo?logo=github)](https://github.com/joaodrp/whoogoo/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Import your WHOOP history into Google Health.
