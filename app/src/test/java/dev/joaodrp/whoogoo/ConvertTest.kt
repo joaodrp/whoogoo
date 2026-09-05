@@ -43,11 +43,7 @@ class ConvertTest {
         val by = records.associateBy { it["id"] }
         val sleep = by.getValue("whoop:sleep:2026-07-26 00:10:39")
         assertEquals("2026-07-26T00:10:39+01:00", sleep["start"])
-        @Suppress("UNCHECKED_CAST")
-        val stages = sleep["stages"] as List<Record>
-        assertEquals(4, stages.size)
-        assertEquals("AWAKE", stages[3]["stage"])
-        assertEquals(sleep["end"], stages[3]["end"])
+        assertEquals("WHOOP stage totals: light 3h59m, deep 1h50m, REM 1h18m, awake 22m", sleep["notes"])
 
         val odd = by.getValue("whoop:workout:2026-07-26 20:00:00")
         assertEquals("OTHER_WORKOUT", odd["exerciseType"])

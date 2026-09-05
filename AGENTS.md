@@ -29,8 +29,8 @@ lines; `done` ends the import and the CLI pulls `files/records.json`, a line sta
 delta must sit strictly inside its record interval, and its record must carry a baseline, because
 Google Health derives the nightly temperature from baseline plus delta and silently imports nothing
 when the baseline is absent (measured: a sample written without one synced its other types and no
-temperature at all); stage blocks are synthetic because WHOOP
-exports totals only. Permissions come from the manifest at runtime (`pm grant` over adb, the app
+temperature at all). Sleep sessions carry no stages: the export has stage totals but no intervals,
+and inventing a hypnogram to fit was ruled out, so the totals go in the session's notes. Permissions come from the manifest at runtime (`pm grant` over adb, the app
 reads `requestedPermissions`), so the manifest is the only list.
 
 **Run it for real.** `mise run check` (lint, the conversion's JVM tests and the CLI's tests)

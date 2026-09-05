@@ -211,15 +211,6 @@ func gdate(p point, field string) string {
 
 func minutes(start, end string) float64 { return parseISO(end).Sub(parseISO(start)).Minutes() }
 
-func stageMinutes(stages []any, stageKey, startKey, endKey string) map[string]float64 {
-	out := map[string]float64{}
-	for _, s := range stages {
-		m := s.(map[string]any)
-		out[m[stageKey].(string)] += minutes(m[startKey].(string), m[endKey].(string))
-	}
-	return out
-}
-
 func f(v any) float64 {
 	if x, ok := v.(float64); ok {
 		return x
@@ -264,11 +255,11 @@ var specs = []spec{
 	{name: "sleep", dataType: "sleep", field: "sleep.interval.civil_end_time",
 		key:   func(r Record) string { return minuteKey(r["start"].(string)) },
 		gkey:  func(p point) string { return minuteKey(str(p, "sleep", "interval", "startTime")) },
-		value: func(r Record) any { return stageMinutes(r["stages"].([]any), "stage", "start", "end") },
+		value: func(r Record) any { return minutes(r["start"].(string), r["end"].(string)) },
 		gvalue: func(p point) any {
-			st, _ := get(p, "sleep", "stages").([]any)
-			return stageMinutes(st, "type", "startTime", "endTime")
-		}, tol: 3},
+			return minutes(str(p, "sleep", "interval", "startTime"), str(p, "sleep", "interval", "endTime"))
+		},
+		tol: 2},
 	{name: "exercise", dataType: "exercise", field: "exercise.interval.civil_start_time",
 		key:   func(r Record) string { return minuteKey(r["start"].(string)) },
 		gkey:  func(p point) string { return minuteKey(str(p, "exercise", "interval", "startTime")) },
@@ -286,20 +277,6 @@ var specs = []spec{
 }
 
 func close_(a, b any, tol float64) bool {
-	if am, ok := a.(map[string]float64); ok {
-		bm, ok := b.(map[string]float64)
-		if !ok {
-			return false
-		}
-		for _, m := range []map[string]float64{am, bm} {
-			for k := range m {
-				if math.Abs(am[k]-bm[k]) > tol {
-					return false
-				}
-			}
-		}
-		return true
-	}
 	af, bf := f(a), f(b)
 	return !math.IsNaN(af) && !math.IsNaN(bf) && math.Abs(af-bf) <= tol
 }

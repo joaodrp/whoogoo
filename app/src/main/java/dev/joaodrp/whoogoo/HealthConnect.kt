@@ -29,7 +29,6 @@ private fun Record.num(key: String): Double = (this[key] as Number).toDouble()
 
 private fun Record.at(key: String): OffsetDateTime = OffsetDateTime.parse(str(key))
 
-@Suppress("UNCHECKED_CAST")
 fun toRecord(o: Record): HealthRecord {
     val meta = Metadata.autoRecorded(clientRecordId = o.str("id"), device = whoop)
     return when (val type = o.str("type")) {
@@ -42,13 +41,7 @@ fun toRecord(o: Record): HealthRecord {
                 endTime = e.toInstant(),
                 endZoneOffset = e.offset,
                 title = o.str("title"),
-                stages = (o["stages"] as List<Record>).map {
-                    SleepSessionRecord.Stage(
-                        startTime = it.at("start").toInstant(),
-                        endTime = it.at("end").toInstant(),
-                        stage = constant(SleepSessionRecord::class.java, "STAGE_TYPE_", it.str("stage"))
-                    )
-                },
+                notes = o.str("notes").takeIf { it.isNotBlank() },
                 metadata = meta
             )
         }

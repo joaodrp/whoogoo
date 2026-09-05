@@ -1,7 +1,6 @@
 package dev.joaodrp.whoogoo
 
 import java.io.InputStream
-import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
@@ -9,6 +8,7 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.zip.ZipInputStream
 import kotlin.math.round
+import kotlin.math.roundToInt
 
 /**
  * One Health Connect record as a plain map. This is the shape of records.json, which the CLI's
@@ -52,11 +52,12 @@ private val exerciseTypes = mapOf(
     "Wheelchair" to "WHEELCHAIR"
 )
 
+/** The stage totals WHOOP exports, in the order the note lists them. */
 private val stageColumns = listOf(
-    "LIGHT" to "Light sleep duration (min)",
-    "DEEP" to "Deep (SWS) duration (min)",
+    "light" to "Light sleep duration (min)",
+    "deep" to "Deep (SWS) duration (min)",
     "REM" to "REM duration (min)",
-    "AWAKE" to "Awake duration (min)"
+    "awake" to "Awake duration (min)"
 )
 
 /** A WHOOP local timestamp with its cycle timezone ("UTC+01:00" or "UTCZ"). */
@@ -66,6 +67,16 @@ private fun parseTS(local: String, tz: String): OffsetDateTime =
 private fun iso(t: OffsetDateTime): String = DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(t)
 
 private fun round2(v: Double): Double = round(v * 100) / 100
+
+/** "3h29m", "1h", "22m". */
+private fun hm(minutes: Double): String {
+    val m = minutes.roundToInt()
+    return when {
+        m < 60 -> "${m}m"
+        m % 60 == 0 -> "${m / 60}h"
+        else -> "${m / 60}h${m % 60}m"
+    }
+}
 
 /** A bad numeric cell aborts the conversion instead of becoming a zero-valued record. */
 private fun Row.num(col: String): Double =
@@ -115,21 +126,9 @@ private fun sleeps(rows: List<Row>): List<Record> = rows.flatMap { r ->
     val tz = r.getValue("Cycle timezone")
     val start = parseTS(r.getValue("Sleep onset"), tz)
     val end = parseTS(r.getValue("Wake onset"), tz)
-    val minutes = stageColumns.map { (stage, col) -> stage to r.num(col) }
-    val total = minutes.sumOf { it.second }
-    // ponytail: WHOOP exports stage totals only, so stages are contiguous blocks scaled to the
-    // session; totals are exact, the hypnogram shape is not. Real intervals need the WHOOP API.
-    val stages = mutableListOf<Record>()
-    val span = Duration.between(start, end).toNanos()
-    var cum = 0.0
-    var t = start
-    for ((stage, m) in minutes) {
-        if (m == 0.0) continue
-        cum += m
-        val segEnd = if (cum == total) end else start.plusNanos((span * cum / total).toLong())
-        stages += mapOf("start" to iso(t), "end" to iso(segEnd), "stage" to stage)
-        t = segEnd
-    }
+    // WHOOP exports how long each stage lasted, never when, and Health Connect stages are
+    // intervals. Rather than invent a hypnogram the session carries the totals as a note.
+    val totals = stageColumns.mapNotNull { (name, col) -> r.num(col).takeIf { it > 0 }?.let { name to it } }
     val out = mutableListOf<Record>(
         mapOf(
             "type" to "sleep",
@@ -137,17 +136,16 @@ private fun sleeps(rows: List<Row>): List<Record> = rows.flatMap { r ->
             "start" to iso(start),
             "end" to iso(end),
             "title" to if (r["Nap"] == "true") "Nap" else "Sleep",
-            "stages" to stages
+            "notes" to totals.joinToString(", ", prefix = "WHOOP stage totals: ") { (name, m) -> "$name ${hm(m)}" }
         )
     )
     if (r.has("Respiratory rate (rpm)")) {
-        out +=
-            mapOf(
-                "type" to "respiratory_rate",
-                "id" to "whoop:rr:" + r["Sleep onset"],
-                "time" to iso(end),
-                "rpm" to r.num("Respiratory rate (rpm)")
-            )
+        out += mapOf(
+            "type" to "respiratory_rate",
+            "id" to "whoop:rr:" + r["Sleep onset"],
+            "time" to iso(end),
+            "rpm" to r.num("Respiratory rate (rpm)")
+        )
     }
     out
 }

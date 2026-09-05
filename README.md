@@ -15,7 +15,7 @@ WHOOP export zip -> whoogoo app -> Health Connect -> Google Health app -> your a
 
 | WHOOP | Google Health | Note |
 |---|---|---|
-| Sleep onset, wake onset, stage minutes | Sleep session with stages | WHOOP exports stage totals only; stages are written as contiguous blocks with exact totals, so the hypnogram shape is synthetic |
+| Sleep onset, wake onset | Sleep session | start, end and time in bed; the stage totals ride along as a note on the session |
 | Respiratory rate | Respiratory rate | stamped at wake time |
 | Resting heart rate | Resting heart rate | stamped at wake time |
 | Heart rate variability | HRV (RMSSD) | WHOOP HRV is RMSSD |
@@ -26,7 +26,15 @@ WHOOP export zip -> whoogoo app -> Health Connect -> Google Health app -> your a
 | Workout energy burned | Active calories burned | |
 
 Not imported because Health Connect has no matching type: recovery, strain, sleep
-performance/need/debt/efficiency/consistency, HR zones, max/average HR, journal entries.
+performance/need/debt/efficiency/consistency, HR zones, max/average HR, journal entries. Nor VO2
+max, which WHOOP does not put in the export at all.
+
+**Sleep stages are a gap of a different kind.** Health Connect stores stages as intervals, and the
+export says only how many minutes each stage lasted, never when. There is nothing to place on a
+timeline, and whoogoo will not invent one, so imported nights show duration and time in bed but no
+hypnogram and no per-stage figures in Google Health. The totals are still carried, as a note on the
+session that reads like "WHOOP stage totals: light 3h29m, deep 1h28m, REM 1h37m, awake 21m",
+which Google Health may or may not display.
 
 Re-running an import updates records instead of duplicating them.
 

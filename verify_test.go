@@ -4,13 +4,11 @@ import "testing"
 
 func TestCompareSessions(t *testing.T) {
 	records := []Record{
-		{"type": "sleep", "start": "2026-07-26T23:52:10+01:00", "end": "2026-07-27T07:52:09+01:00",
-			"stages": []any{map[string]any{"start": "2026-07-26T23:52:10+01:00", "end": "2026-07-27T07:52:09+01:00", "stage": "LIGHT"}}},
-		{"type": "sleep", "start": "2026-07-25T23:00:00+01:00", "end": "2026-07-26T07:00:00+01:00", "stages": []any{}},
+		{"type": "sleep", "start": "2026-07-26T23:52:10+01:00", "end": "2026-07-27T07:52:09+01:00"},
+		{"type": "sleep", "start": "2026-07-25T23:00:00+01:00", "end": "2026-07-26T07:00:00+01:00"},
 	}
 	google := []point{{"sleep": map[string]any{
 		"interval": map[string]any{"startTime": "2026-07-26T22:52:40Z", "endTime": "2026-07-27T06:52:09Z"},
-		"stages":   []any{map[string]any{"startTime": "2026-07-26T22:52:10Z", "endTime": "2026-07-27T06:52:09Z", "type": "LIGHT"}},
 	}}}
 	matched, differ, missing := compare(records, google, specs[0])
 	if matched != 1 || len(differ) != 0 || len(missing) != 1 {
