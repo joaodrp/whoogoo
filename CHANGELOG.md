@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.1](https://github.com/joaodrp/whoogoo/compare/v1.0.0...v1.0.1) (2026-09-05)
+
+
+### Bug Fixes
+
+* **app:** stop claiming the sync needs Google Health in front of you ([e3742ac](https://github.com/joaodrp/whoogoo/commit/e3742acffda3678c9ce6a7ca0bb1f3e2f0e1fdbb))
+* **docs:** point the header mark at a path that resolves ([bc0b28b](https://github.com/joaodrp/whoogoo/commit/bc0b28b58182ffbf5b326a0116f80cfed58915c8))
+
 ## [1.0.0](https://github.com/joaodrp/whoogoo/compare/v0.3.0...v1.0.0) (2026-09-05)
 
 
