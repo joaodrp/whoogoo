@@ -255,11 +255,24 @@ func ensureAVD() error {
 	args := []string{"create", "avd", "--force", "-n", avd, "-k", image}
 	c := command(append([]string{tool("avdmanager")}, append(args, "-d", "pixel_10")...)...)
 	c.Stdin = strings.NewReader("no\n")
-	if _, err := c.CombinedOutput(); err == nil {
-		return nil
+	if _, err := c.CombinedOutput(); err != nil {
+		fmt.Println("pixel_10 profile unavailable in these SDK tools, using the default profile")
+		if err := run("no\n", append([]string{tool("avdmanager")}, args...)...); err != nil {
+			return err
+		}
 	}
-	fmt.Println("pixel_10 profile unavailable in these SDK tools, using the default profile")
-	return run("no\n", append([]string{tool("avdmanager")}, args...)...)
+	return enableKeyboard()
+}
+
+// enableKeyboard lets the host keyboard type into the device; phone profiles ship with it off.
+func enableKeyboard() error {
+	path := filepath.Join(avdHome(), avd+".avd", "config.ini")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	cfg := strings.ReplaceAll(string(data), "hw.keyboard=no", "hw.keyboard=yes")
+	return os.WriteFile(path, []byte(cfg), 0o644)
 }
 
 // emu boots the device. gpu is the emulator's -gpu mode; "" leaves the choice to the emulator,
