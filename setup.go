@@ -262,7 +262,10 @@ func ensureAVD() error {
 	return run("no\n", append([]string{tool("avdmanager")}, args...)...)
 }
 
-func emu(headless bool) error {
+// emu boots the device. gpu is the emulator's -gpu mode; "" leaves the choice to the emulator,
+// whose driver blocklist falls back to slow software rendering on many Linux machines where
+// "host" works fine.
+func emu(headless bool, gpu string) error {
 	if err := doctor(); err != nil {
 		return err
 	}
@@ -271,7 +274,13 @@ func emu(headless bool) error {
 	}
 	args := []string{tool("emulator"), "-avd", avd, "-no-snapshot-load"}
 	if headless {
-		args = append(args, "-no-window", "-gpu", "swiftshader_indirect")
+		args = append(args, "-no-window")
+		if gpu == "" {
+			gpu = "swiftshader_indirect"
+		}
+	}
+	if gpu != "" {
+		args = append(args, "-gpu", gpu)
 	}
 	fmt.Println("booting emulator; leave this running and use another terminal for `whoogoo import`")
 	return run("", args...)

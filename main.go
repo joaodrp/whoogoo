@@ -38,13 +38,15 @@ func main() {
 	}
 
 	var headless bool
+	var gpu string
 	emuC := &cobra.Command{
 		Use:   "emu",
 		Short: "Boot the emulator (leave it running)",
 		Args:  cobra.NoArgs,
-		RunE:  func(*cobra.Command, []string) error { return emu(headless) },
+		RunE:  func(*cobra.Command, []string) error { return emu(headless, gpu) },
 	}
 	emuC.Flags().BoolVar(&headless, "headless", false, "no window (you cannot sign in to Google this way)")
+	emuC.Flags().StringVar(&gpu, "gpu", "", `emulator -gpu mode, e.g. "host" when the emulator wrongly falls back to software rendering`)
 
 	var apk string
 	importC := &cobra.Command{

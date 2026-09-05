@@ -81,6 +81,10 @@ whoogoo import my_whoop_data.zip        # in another terminal: installs the app,
 `whoogoo doctor` is the read-only version of `setup`, and `setup -y` runs the fixes without asking.
 Every command has `--help`; `whoogoo completion <shell>` prints shell completions.
 
+If the emulator window is sluggish and its log says "Your GPU drivers may have a bug", the
+emulator has fallen back to software rendering. `whoogoo emu --gpu host` uses the real GPU, which
+works on most Linux machines despite the warning.
+
 `import` prints progress and ends with `done`. Health Connect on the emulator now holds your data:
 search for "Health Connect" in the emulator's Settings and open Data and access.
 
