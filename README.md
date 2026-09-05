@@ -8,24 +8,21 @@
 # whoogoo
 
 [![CI](https://github.com/joaodrp/whoogoo/actions/workflows/ci.yml/badge.svg)](https://github.com/joaodrp/whoogoo/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/joaodrp/whoogoo?logo=github)](https://github.com/joaodrp/whoogoo/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Import your WHOOP history into Google Health.
 
 </div>
 
-- **The app** reads the export zip WHOOP emails you and writes it to Health Connect. The Google
-  Health app takes it from there into your account.
-- **The CLI** is for people without an Android phone. It runs the app on an emulator on your
-  computer, and checks afterwards that everything arrived.
+whoogoo is an Android app. Give it the export zip WHOOP emails you and it writes your history into
+Health Connect, from where the Google Health app carries it into your account. Google Health has no
+file import and its API cannot write the daily vitals, so that is the only way in. Without an
+Android phone, the `whoogoo` command line tool runs the app on an emulator on your computer and
+checks afterwards that everything arrived.
 
-It is a one-time migration, not a sync. You run it when you leave WHOOP, it moves what is in the
-export, and that is the end of it: nothing runs in the background, and nothing keeps watching your
-WHOOP account. Run it again with a newer export and it updates what it already wrote.
-
-Google Health has no file import, and its API can read the daily vitals but not write them. Health
-Connect is the only way in.
+It is a one-time migration, not a sync: it moves what is in the export and stops. Nothing runs in
+the background, and nothing keeps watching your WHOOP account. Run it again with a newer export and
+it updates what it already wrote.
 
 <p align="center">
   <img src="docs/screenshots/01-idle.png" width="31%" alt="The opening screen">
