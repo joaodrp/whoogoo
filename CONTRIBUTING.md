@@ -48,7 +48,7 @@ CLI grants them over adb for unattended imports. Read permissions exist only for
 check and are never granted automatically, so that one always needs a person to tap through.
 
 **Only what survives the trip is imported.** Sleep, skin temperature and calories were each
-measured and then deliberately dropped. The README's "Left out" holds the
+measured and then deliberately dropped. The README's "Coverage" holds the
 reasoning. Do not add them back without new evidence that the numbers land correctly.
 
 **The signing key is not in the repository.** Releases are signed in CI from

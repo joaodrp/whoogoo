@@ -7,6 +7,10 @@ Import your WHOOP history into Google Health.
 - **The CLI** is for people without an Android phone. It runs the app on an emulator on your
   computer, and checks afterwards that everything arrived.
 
+It is a one-time migration, not a sync. You run it when you leave WHOOP, it moves what is in the
+export, and that is the end of it: nothing runs in the background, and nothing keeps watching your
+WHOOP account. Run it again with a newer export and it updates what it already wrote.
+
 Google Health has no file import, and its API can read the daily vitals but not write them. Health
 Connect is the only way in.
 
@@ -16,41 +20,23 @@ Connect is the only way in.
   <img src="docs/screenshots/03-months.png" width="31%" alt="Narrowing the import to a range of months">
 </p>
 
-## Imported
-
-| WHOOP | Google Health | Note |
-|---|---|---|
-| Resting heart rate | Resting heart rate | measured during sleep, stamped at wake time |
-| Heart rate variability | HRV (RMSSD) | WHOOP HRV is RMSSD |
-| Blood oxygen | Oxygen saturation | a night average, stamped at wake time |
-| Respiratory rate | Respiratory rate | a night average, stamped at wake time |
-| Workout | Exercise session | the WHOOP activity mapped to a Health Connect exercise type, its name kept as the title |
-
-## Left out
+## Coverage
 
 Anything whoogoo cannot carry across truthfully is left out. A wrong number in your health history
 is worse than a missing one.
 
-**Sleep.** The export says how many minutes each stage lasted, never when. Health Connect stores
-sleep as a session made of staged intervals, so importing it means inventing a timeline: with
-stages the shape is fabricated, and without them Google Health reads the whole session as sleep and
-records your awake time as zero, overstating some nights by half an hour. Neither is true, so sleep
-is not imported.
-
-**Skin temperature.** WHOOP measures an absolute nightly temperature and it survives the trip
-intact, but Health Connect stores temperature as a baseline plus a nightly delta, and Google Health
-throws our baseline away and recomputes the variation from its own. Until it has enough nights it
-prints the absolute temperature as a variation, so every import would open with a reading like
-"+33.9 C". Writing the record without a baseline stops the data arriving at all.
-
-**Calories, daily and per workout.** Every device estimates calories its own way, so mixing WHOOP's
-numbers into a history that also holds another device's compares things that are not comparable.
-WHOOP's per-workout figure also includes the resting energy burned during the workout, which is not
-what Health Connect's active calories mean.
-
-**No matching type in Health Connect:** recovery, strain, sleep performance, need, debt, efficiency
-and consistency, heart rate zones, max and average heart rate, journal entries. VO2 max is missing
-for a different reason: the export does not contain it.
+| WHOOP | | Google Health | Note |
+|---|:-:|---|---|
+| Resting heart rate | ✅ | Resting heart rate | measured during sleep, stamped at wake time |
+| Heart rate variability | ✅ | HRV | WHOOP's HRV is RMSSD, which is what Health Connect stores |
+| Blood oxygen | ✅ | Oxygen saturation | a night average, not a spot reading |
+| Respiratory rate | ✅ | Respiratory rate | a night average, not a spot reading |
+| Workouts | ✅ | Exercise session | time and type only, no heart rate or route; the activity name becomes the title |
+| Sleep | ❌ | | the export gives each stage's length but never when it happened. Inventing the timeline fabricates the shape of your night; leaving the stages out makes Google Health read the whole session as asleep and record your awake time as zero |
+| Skin temperature | ❌ | | Health Connect stores a baseline plus a nightly delta, and Google Health discards ours to recompute the variation from its own. Early nights then display as an absolute temperature, around "+33.9 C" |
+| Calories, daily and per workout | ❌ | | devices estimate calories too differently to mix in one history, and WHOOP's per-workout figure includes the resting energy burned during it |
+| Recovery, strain, sleep scores, heart rate zones, max and average heart rate, journal entries | ❌ | | no matching type in Health Connect |
+| VO2 max | ❌ | | not in the export at all |
 
 Re-running an import updates records instead of duplicating them.
 
