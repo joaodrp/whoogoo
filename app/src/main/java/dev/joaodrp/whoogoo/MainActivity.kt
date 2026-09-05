@@ -19,7 +19,6 @@ import androidx.lifecycle.lifecycleScope
 import java.io.File
 import java.io.InputStream
 import java.time.LocalDate
-import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -54,6 +53,9 @@ class MainActivity : ComponentActivity() {
 
     /** Ids another app already covers; null until someone asks for the duplicate check. */
     private var already: Set<String>? = null
+
+    /** What the CLI left in filesDir for this run, removed once it has been read. */
+    private var staged: List<File> = emptyList()
 
     private class Cli(
         val skip: Set<String>,
@@ -130,6 +132,7 @@ class MainActivity : ComponentActivity() {
             // that never comes.
             return fail("bad launch arguments: ${e.message}")
         }
+        staged = listOfNotNull(name, cli?.delete).map { File(filesDir, it) }
         start { File(filesDir, name).inputStream() }
     }
 
@@ -157,6 +160,10 @@ class MainActivity : ComponentActivity() {
         try {
             ui = Ui.Reading
             converted = open().use { convert(readExport(it)) }
+            // Left in place, these let any installed app start this activity and re-run the whole
+            // thing unattended, since the permissions are already granted.
+            staged.forEach { it.delete() }
+            staged = emptyList()
             val types = counts(converted).keys
             val c = cli
             when {
@@ -212,11 +219,15 @@ class MainActivity : ComponentActivity() {
     /** Looks over the whole export's span once, so changing the dates afterwards costs nothing. */
     private fun scan() = lifecycleScope.launch(Dispatchers.IO) {
         try {
+            // Whole days, not the first and last readings: other apps stamp a night's vitals at
+            // their own hour, often midnight, which sits outside a window bounded by wake times.
+            val first = converted.first().time()
+            val last = converted.last().time()
             val found = existing(
                 client,
                 packageName,
-                converted.first().time().toInstant(),
-                converted.last().time().toInstant().plus(1, ChronoUnit.DAYS)
+                first.toLocalDate().minusDays(1).atStartOfDay().toInstant(first.offset),
+                last.toLocalDate().plusDays(2).atStartOfDay().toInstant(last.offset)
             )
             already = alreadyThere(converted, found.days, found.workouts)
             log("already there: ${already?.size} of ${converted.size}, from ${found.apps}")
