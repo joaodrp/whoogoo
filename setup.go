@@ -19,7 +19,7 @@ const (
 var abi = map[string]string{"arm64": "arm64-v8a", "amd64": "x86_64"}[runtime.GOARCH]
 
 // image is the sdkmanager package id; its install path is the same id with "/" for ";".
-var image = "system-images;android-36;google_apis_playstore;" + abi
+var image = "system-images;android-37.0;google_apis_playstore;" + abi
 
 var tools = map[string]string{
 	"adb":        "platform-tools/adb",
@@ -144,7 +144,7 @@ func checks() []requirement {
 		{label: "avdmanager", ok: tool("avdmanager") != "", hint: "reinstall the command-line tools"},
 		{label: "adb (platform-tools)", ok: sdkTool("adb") != "", hint: `sdkmanager "platform-tools"`, pkg: "platform-tools"},
 		{label: "emulator", ok: sdkTool("emulator") != "", hint: `sdkmanager "emulator"`, pkg: "emulator"},
-		{label: "Android 16 Play Store image", ok: root != "" && isDir(imageDir), hint: fmt.Sprintf("sdkmanager %q", image), pkg: image},
+		{label: "Android 17 Play Store image", ok: root != "" && isDir(imageDir), hint: fmt.Sprintf("sdkmanager %q", image), pkg: image},
 	}
 	if runtime.GOOS == "linux" {
 		f, err := os.OpenFile("/dev/kvm", os.O_RDWR, 0)

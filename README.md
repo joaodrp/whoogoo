@@ -48,7 +48,7 @@ The `whoogoo` command line tool sets up an Android emulator and runs the app on 
 ### Prerequisites
 
 - Android SDK command-line tools. `whoogoo setup` installs everything else (emulator,
-  platform-tools, the Android 16 Play Store image, about 2 GB) and, on macOS with Homebrew, offers to
+  platform-tools, the Android 17 Play Store image, about 2 GB) and, on macOS with Homebrew, offers to
   install the command-line tools themselves. Elsewhere get them from
   [Android Studio](https://developer.android.com/studio) or the
   [command-line tools](https://developer.android.com/studio#command-line-tools-only) download, with
@@ -74,7 +74,7 @@ Request your export in the WHOOP app (More -> App settings -> Data export) and w
 
 ```sh
 whoogoo setup                           # checks the SDK, offers to install what is missing, creates the device
-whoogoo emu                             # boots the Pixel 10 / Android 16 emulator; leave it running
+whoogoo emu                             # boots the Pixel 10 / Android 17 emulator; leave it running
 whoogoo import my_whoop_data.zip        # in another terminal: installs the app, hands it the export, shows progress
 ```
 
