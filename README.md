@@ -1,12 +1,18 @@
 # whoogoo
 
-Import your WHOOP vitals and workout history into Google Health. Works on an Android phone, or on
-an Android emulator on your computer if you have no phone.
+Move your WHOOP history into Google Health, without inventing any numbers along the way.
 
-Google Health has no file import, and its cloud API cannot write vitals. Android Health Connect
-can, and the Google Health Android app syncs Health Connect data, history included, into your
-account. The whoogoo app runs that chain, carrying across the parts of the export that survive the
-trip intact and leaving the rest out:
+whoogoo is two things:
+
+- **An Android app.** Give it the export zip WHOOP emails you, pick what should move, and it writes
+  to Health Connect. That is the whole tool.
+- **A command line companion.** If you own no Android phone, it sets up an emulator on your
+  computer and runs the app inside it, then checks the result against your account afterwards.
+
+Why the detour: Google Health has no file import, and its cloud API can read the daily vitals but
+not write them. Health Connect can, and the Google Health app syncs Health Connect data, history
+included, into your account. whoogoo runs that chain, carrying across the parts of the export that
+survive the trip intact and leaving the rest out:
 
 ```
 WHOOP export zip -> whoogoo app -> Health Connect -> Google Health app -> your account
@@ -185,15 +191,26 @@ last `whoogoo import` loaded, per type: matched, value differs, missing. One-tim
    ```
 
 The first run opens a browser for consent (read-only scopes) and prints where it cached the token.
-Calories are not checked: the API only exposes them as daily rollups.
+
+Two limits worth knowing. Google stores the vitals as one value per day, so a day with both a nap
+and a night sleep is compared against their average and reported as a difference when both records
+are in fact correct. And where another app covers the same day, a match may be against that app's
+copy rather than whoogoo's.
 
 ## If you already have some of this data
 
-Health Connect keeps one copy per app, so a day that another app already wrote is stored twice,
-once from that app and once from whoogoo. Google Health then shows only one of them, the copy it
-already had, and the whoogoo copy stays hidden. Days and workouts that nothing else recorded show
-up normally. Two ways to avoid the overlap: untick those types in the app, or pass `--until` with
-the day before your new device started.
+Health Connect keeps one copy per app, so a day another app already wrote is stored twice, once
+from that app and once from whoogoo. Google Health then shows only one of them, the copy it already
+had, and whoogoo's stays hidden. Days and workouts nothing else recorded show up normally.
+
+The choosing screen has a "leave out what I have" option that looks for the overlap and skips it. It
+asks for read access when you tap it, and not before: whoogoo writes to Health Connect and does not
+read it unless you ask for this. A day another app already filled counts as a duplicate; a workout
+counts when it overlaps one already there.
+
+It only sees this device's Health Connect. Data that reached your Google account another way, such
+as a phone syncing WHOOP through Apple Health, is invisible to it. For that, either untick the
+types or pass `--until` with the day before your other device took over.
 
 ## Start over
 
@@ -202,37 +219,21 @@ types and delete. That removes what whoogoo wrote and nothing else. On the emula
 delete the virtual device and run `whoogoo emu` again.
 
 Data that has already synced to your Google account is a separate copy, and deleting in Health
-Connect does not reliably remove it. Google Health says it does, and for workouts it did within
-minutes, but in testing sleep and the daily vitals were still in the account 90 minutes later.
-Google Health can delete its own copy directly, per data type and date range, under profile ->
-Your data in Google Health -> Deletion options. That one takes effect straight away, and it deletes
-every source for those dates rather than only whoogoo's, so pick the range with care.
+Connect removes it only for workouts.
 
-## Development
+Those deletions travel the same way an import does, so the same rules apply: Google Health has to
+be open, and it takes a while. Thirteen workouts cleared the account about twenty minutes after
+being deleted in Health Connect. Nothing appears to happen until it does, so leave it running
+rather than deleting again.
 
-```sh
-mise install        # Go, JDK 21, linters, lefthook
-mise run hooks      # git hooks: gitleaks, gofmt, golangci-lint, ktlint, Conventional Commits, tests on push
-mise run check      # lint + the app's JVM tests + the CLI's tests, what CI runs
-mise run fmt
-mise run apk        # builds app/build/outputs/apk/debug/app-debug.apk
-mise run dev -- import --apk app/build/outputs/apk/debug/app-debug.apk my_whoop_data.zip
-```
+The daily vitals do not travel at all. They stay in the account long after Health Connect has let
+them go, and the Google Health API cannot delete them either: it can create and remove workouts,
+sleep and body measurements, but the daily vitals are read-only. The one route that works is
+Google Health itself, under profile -> Your data in Google Health -> Deletion options, per data
+type and date range. That takes effect straight away, and it deletes every source for those dates
+rather than only whoogoo's, so pick the range with care.
 
-The app is Kotlin with Compose and the Health Connect client; the CLI is Go, standard library
-plus cobra for the command line.
+## Contributing
 
-| Path | Role |
-|---|---|
-| `app/src/main/java/dev/joaodrp/whoogoo/Convert.kt` | WHOOP CSVs to Health Connect records, the same shape as `records.json` |
-| `app/src/main/java/dev/joaodrp/whoogoo/HealthConnect.kt` | those records as Health Connect objects |
-| `app/src/main/java/dev/joaodrp/whoogoo/MainActivity.kt`, `Ui.kt` | the import flow and its one screen |
-| `app/src/test/` | JVM tests for the conversion |
-| `app/whoogoo.jks` | throwaway signing key, committed so every release installs over the previous one |
-| `setup.go` | SDK checks, interactive setup, virtual device, emulator |
-| `importer.go` | APK download and install, export push, permission grants, log streaming, records pull |
-| `verify.go` | Google Health API client (OAuth loopback flow) and the diff |
-
-Releases are automated with release-please from Conventional Commits: every push to `main`
-updates a release PR with the version bump and changelog. Merging that PR tags the release and
-attaches the binaries for each platform plus the APK; the CLI downloads the APK of its own version.
+Build instructions, the repository layout and the release process are in
+[CONTRIBUTING.md](CONTRIBUTING.md).
