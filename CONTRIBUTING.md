@@ -28,7 +28,6 @@ cobra.
 | `app/.../HealthConnect.kt` | those records as Health Connect objects, and reading what other apps wrote |
 | `app/.../MainActivity.kt`, `Ui.kt` | the import flow and its one screen |
 | `app/src/test/` | JVM tests for the conversion |
-| `app/whoogoo.jks` | throwaway signing key, committed so every release installs over the previous one |
 | `setup.go` | SDK checks, interactive setup, virtual device, emulator |
 | `importer.go` | APK download and install, export push, permission grants, log streaming, records pull |
 | `verify.go` | Google Health API client (OAuth loopback flow) and the diff |
@@ -52,8 +51,10 @@ check and are never granted automatically, so that one always needs a person to 
 measured and then deliberately dropped. The README's "What is left out, and why" holds the
 reasoning. Do not add them back without new evidence that the numbers land correctly.
 
-**The signing key is public on purpose.** `app/whoogoo.jks` is a throwaway so every build installs
-over the previous one. It protects nothing. Do not rotate it.
+**The signing key is not in the repository.** Releases are signed in CI from
+`ANDROID_KEYSTORE_BASE64` and `ANDROID_KEYSTORE_PASSWORD`. A build without those environment
+variables falls back to the local Android debug key, which is fine for development but means a
+locally built APK will not install over a released one: uninstall first.
 
 ## Testing
 

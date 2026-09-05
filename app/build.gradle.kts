@@ -20,13 +20,19 @@ android {
         versionCode = 1 + part(0) * 1_000_000 + part(1) * 1000 + part(2)
     }
     buildFeatures.compose = true
-    // Throwaway key committed on purpose: every release must install over the previous one.
-    signingConfigs {
-        getByName("debug") {
-            storeFile = file("whoogoo.jks")
-            storePassword = "whoogoo"
-            keyAlias = "whoogoo"
-            keyPassword = "whoogoo"
+    // Releases are signed with a key held in CI secrets, so every release installs over the
+    // previous one. Without it, builds fall back to the local Android debug key, which means a
+    // locally built APK will not install over a released one: uninstall first.
+    val keystore = System.getenv("WHOOGOO_KEYSTORE")
+    val keystorePassword = System.getenv("WHOOGOO_KEYSTORE_PASSWORD")
+    if (!keystore.isNullOrBlank() && !keystorePassword.isNullOrBlank()) {
+        signingConfigs {
+            getByName("debug") {
+                storeFile = file(keystore)
+                storePassword = keystorePassword
+                keyAlias = "whoogoo"
+                keyPassword = keystorePassword
+            }
         }
     }
 }

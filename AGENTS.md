@@ -52,8 +52,8 @@ in a hurry have not.
 **Releases are automatic.** `whoogoo import` downloads the APK of its own version from the
 release, so a `dev` build needs `--apk`.
 
-**The signing key is public on purpose.** `app/whoogoo.jks` is a throwaway so every build installs
-over the previous one. Do not rotate it.
+**The signing key lives in CI secrets.** `WHOOGOO_KEYSTORE` and `WHOOGOO_KEYSTORE_PASSWORD` switch
+the app's signing config; without them Gradle uses the local debug key. Never commit a keystore.
 
 Report what you verified and what you could not. A claim you did not check is worth less than
 saying you did not check it.
