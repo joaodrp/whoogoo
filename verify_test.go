@@ -16,6 +16,17 @@ func TestCompareSessions(t *testing.T) {
 	}
 }
 
+// A records.json from a different version of the app can lack a field a spec reads.
+func TestCompareToleratesMissingFields(t *testing.T) {
+	records := []Record{{"type": "sleep"}}
+	google := []point{{"sleep": map[string]any{
+		"interval": map[string]any{"startTime": "2026-07-26T22:52:40Z", "endTime": "2026-07-27T06:52:09Z"},
+	}}}
+	if matched, differ, missing := compare(records, google, specs[0]); matched != 0 || len(differ) != 0 || len(missing) != 1 {
+		t.Errorf("matched=%d differ=%v missing=%v", matched, differ, missing)
+	}
+}
+
 func TestCompareDaily(t *testing.T) {
 	records := []Record{{"type": "resting_heart_rate", "time": "2026-07-27T07:52:09+01:00", "bpm": 53.0}}
 	google := []point{{"dailyRestingHeartRate": map[string]any{

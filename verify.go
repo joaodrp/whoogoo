@@ -140,6 +140,13 @@ func accessToken() (string, error) {
 
 type point map[string]any
 
+// rstr reads a records.json string field. A record written by a different version of the app can
+// be missing one, which must read as a mismatch rather than panic mid-run.
+func rstr(r Record, key string) string {
+	s, _ := r[key].(string)
+	return s
+}
+
 func listPoints(tok, dataType, filter string) ([]point, error) {
 	var points []point
 	page := ""
@@ -236,7 +243,7 @@ func daily(name, dataType, recField, valueField string, value func(Record) any, 
 	snake := strings.ReplaceAll(dataType, "-", "_")
 	camel := lowerCamel(snake)
 	return spec{name: name, dataType: dataType, field: snake + ".date", daily: true,
-		key:    func(r Record) string { return dateKey(r[recField].(string)) },
+		key:    func(r Record) string { return dateKey(rstr(r, recField)) },
 		gkey:   func(p point) string { return gdate(p, camel) },
 		value:  value,
 		gvalue: func(p point) any { return gnum(p, camel, valueField) },
@@ -253,17 +260,17 @@ func lowerCamel(snake string) string {
 
 var specs = []spec{
 	{name: "sleep", dataType: "sleep", field: "sleep.interval.civil_end_time",
-		key:   func(r Record) string { return minuteKey(r["start"].(string)) },
+		key:   func(r Record) string { return minuteKey(rstr(r, "start")) },
 		gkey:  func(p point) string { return minuteKey(str(p, "sleep", "interval", "startTime")) },
-		value: func(r Record) any { return minutes(r["start"].(string), r["end"].(string)) },
+		value: func(r Record) any { return minutes(rstr(r, "start"), rstr(r, "end")) },
 		gvalue: func(p point) any {
 			return minutes(str(p, "sleep", "interval", "startTime"), str(p, "sleep", "interval", "endTime"))
 		},
 		tol: 2},
 	{name: "exercise", dataType: "exercise", field: "exercise.interval.civil_start_time",
-		key:   func(r Record) string { return minuteKey(r["start"].(string)) },
+		key:   func(r Record) string { return minuteKey(rstr(r, "start")) },
 		gkey:  func(p point) string { return minuteKey(str(p, "exercise", "interval", "startTime")) },
-		value: func(r Record) any { return minutes(r["start"].(string), r["end"].(string)) },
+		value: func(r Record) any { return minutes(rstr(r, "start"), rstr(r, "end")) },
 		gvalue: func(p point) any {
 			return minutes(str(p, "exercise", "interval", "startTime"), str(p, "exercise", "interval", "endTime"))
 		},
@@ -333,11 +340,12 @@ func verify(path string) error {
 	byType := map[string][]Record{}
 	var times []string
 	for _, r := range records {
-		byType[r["type"].(string)] = append(byType[r["type"].(string)], r)
-		if t, ok := r["time"].(string); ok {
+		kind := rstr(r, "type")
+		byType[kind] = append(byType[kind], r)
+		if t := rstr(r, "time"); t != "" {
 			times = append(times, t)
 		} else {
-			times = append(times, r["start"].(string))
+			times = append(times, rstr(r, "start"))
 		}
 	}
 	lo := parseISO(slices.Min(times)).AddDate(0, 0, -1).Format("2006-01-02")
