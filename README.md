@@ -29,6 +29,16 @@ watching your WHOOP account. Run it again with a newer export and it updates wha
   <img src="docs/screenshots/03-months.png" width="31%" alt="Narrowing the import to a range of months">
 </p>
 
+## When you don't need this
+
+WHOOP has its own [Health Connect integration](https://support.whoop.com/s/article/Google-Health-Integration-For-Android)
+on Android. If it is switched on, it keeps Google Health topped up as you go, and for anything it
+covers you do not need whoogoo.
+
+It leaves two gaps. Its documentation only describes syncing from the moment you enable it, so
+whatever came before appears not to travel, and it does not sync HRV at all. It also runs inside
+the WHOOP app and needs a membership, so it stops being an option once you have left.
+
 ## Coverage
 
 Anything whoogoo cannot carry across truthfully is left out. A wrong number in your health history
@@ -199,8 +209,9 @@ asks for read access when you tap it, and not before: whoogoo writes to Health C
 read it unless you ask for this. A day another app already filled counts as a duplicate; a workout
 counts when it overlaps one already there.
 
-It only sees this device's Health Connect. Data that reached your Google account another way, such
-as a phone syncing WHOOP through Apple Health, is invisible to it. For that, either untick the
+It only sees this device's Health Connect. Data that reached your Google account another way is
+invisible to it: a phone syncing WHOOP through Apple Health, or WHOOP's own Android integration
+writing to a phone you no longer use. For that, either untick the
 types or pass `--until` with the day before your other device took over.
 
 ## Privacy
