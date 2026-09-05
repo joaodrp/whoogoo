@@ -2,6 +2,7 @@ package dev.joaodrp.whoogoo
 
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.time.LocalDate
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import org.junit.Assert.assertEquals
@@ -83,6 +84,21 @@ class ConvertTest {
                 convert(empty)
             }.exceptionOrNull()?.message
         )
+    }
+
+    @Test
+    fun filtersByTypeAndDate() {
+        val records = convert(csvs)
+        val vitals = setOf("hrv", "spo2")
+        assertEquals(setOf("hrv", "spo2"), filter(records, vitals).map { it["type"] }.toSet())
+        assertEquals(4, filter(records, vitals).size)
+
+        // Vitals are stamped at wake time, so the cycle waking on the 27th is the later one.
+        val until = filter(records, vitals, until = LocalDate.of(2026, 7, 26))
+        assertEquals(2, until.size)
+        assertEquals(listOf("2026-07-26T07:39:40+01:00"), until.map { it["time"] }.distinct())
+
+        assertEquals(emptyList<Record>(), filter(records, emptySet()))
     }
 
     @Test
