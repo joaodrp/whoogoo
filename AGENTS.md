@@ -19,7 +19,9 @@ timestamp>`). Changing the format duplicates every record in a user's Health Con
 shape `Convert.kt` writes to `records.json` is read by `verify.go`; change both or neither.
 
 **The app talks to the CLI through logcat.** The CLI copies the export into the app's files
-directory and starts the activity with the file name in the `zip` extra. Tag `Whoogoo`, plain
+directory and starts the activity with the file name in the `zip` extra, plus optional `skip`,
+`from` and `until` extras for `--skip`, `--from` and `--until`. Those extras also decide the flow:
+with them the app imports straight away, without them it asks which types to import. Tag `Whoogoo`, plain
 lines; `done` ends the import and the CLI pulls `files/records.json`, a line starting with
 `error:` fails it. Anything else keeps the CLI waiting until its timeout.
 

@@ -4,6 +4,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -49,14 +50,19 @@ func main() {
 	emuC.Flags().StringVar(&gpu, "gpu", "", `emulator -gpu mode, e.g. "host" when the emulator wrongly falls back to software rendering`)
 
 	var apk string
+	var opts filters
 	importC := &cobra.Command{
 		Use:   "import <export.zip>",
 		Short: "Load a WHOOP export into Health Connect on the running emulator",
 		Long:  "Installs the whoogoo app on the emulator, hands it the export and streams its progress. The records it wrote are pulled back for `verify`.",
 		Args:  cobra.ExactArgs(1),
-		RunE:  func(_ *cobra.Command, args []string) error { return importCmd(args[0], apk) },
+		RunE:  func(_ *cobra.Command, args []string) error { return importCmd(args[0], apk, opts) },
 	}
 	importC.Flags().StringVar(&apk, "apk", "", "local app APK instead of the one from this version's GitHub release")
+	importC.Flags().StringSliceVar(&opts.skip, "skip", nil,
+		"record types to leave out: "+strings.Join(recordTypes, ", "))
+	importC.Flags().StringVar(&opts.from, "from", "", "skip records before this date (YYYY-MM-DD)")
+	importC.Flags().StringVar(&opts.until, "until", "", "skip records after this date (YYYY-MM-DD), to stop where another device took over")
 
 	verifyC := &cobra.Command{
 		Use:   "verify [records.json]",

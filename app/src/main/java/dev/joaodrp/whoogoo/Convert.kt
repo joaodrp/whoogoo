@@ -2,6 +2,7 @@ package dev.joaodrp.whoogoo
 
 import java.io.InputStream
 import java.time.Duration
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
@@ -280,6 +281,14 @@ private fun check(records: List<Record>) {
 }
 
 fun counts(records: List<Record>): Map<String, Int> = records.groupingBy { it["type"] as String }.eachCount()
+
+/** The records of the wanted types, within the date range when one is given. */
+fun filter(records: List<Record>, types: Set<String>, from: LocalDate? = null, until: LocalDate? = null): List<Record> =
+    records.filter {
+        it["type"] as String in types &&
+            (from == null || it.time().toLocalDate() >= from) &&
+            (until == null || it.time().toLocalDate() <= until)
+    }
 
 /** "N records (a=1 b=2)", the line the CLI shows. */
 fun countsString(counts: Map<String, Int>): String =

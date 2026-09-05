@@ -80,9 +80,47 @@ func downloadAPK() (string, error) {
 	return path, f.Close()
 }
 
-func importCmd(zip, apk string) error {
+// recordTypes are the "type" values Convert.kt writes; --skip names them.
+var recordTypes = []string{"sleep", "respiratory_rate", "resting_heart_rate", "hrv", "spo2",
+	"skin_temperature", "total_calories", "exercise", "active_calories"}
+
+// filters narrow what the app imports; empty fields mean everything.
+type filters struct {
+	skip        []string
+	from, until string
+}
+
+// extras turns the filters into `am start` arguments the app reads, rejecting typos here rather
+// than after the emulator has booted.
+func (f filters) extras() ([]string, error) {
+	var args []string
+	for _, s := range f.skip {
+		if !slices.Contains(recordTypes, s) {
+			return nil, fmt.Errorf("--skip %s: unknown record type (have %s)", s, strings.Join(recordTypes, ", "))
+		}
+	}
+	if len(f.skip) > 0 {
+		args = append(args, "--es", "skip", strings.Join(f.skip, ","))
+	}
+	for _, d := range []struct{ name, value string }{{"from", f.from}, {"until", f.until}} {
+		if d.value == "" {
+			continue
+		}
+		if _, err := time.Parse(time.DateOnly, d.value); err != nil {
+			return nil, fmt.Errorf("--%s %s: want a date like 2026-05-31", d.name, d.value)
+		}
+		args = append(args, "--es", d.name, d.value)
+	}
+	return args, nil
+}
+
+func importCmd(zip, apk string, opts filters) error {
 	if adbPath() == "" {
 		return fmt.Errorf("adb not found; run `whoogoo setup`")
+	}
+	extras, err := opts.extras()
+	if err != nil {
+		return err
 	}
 	if st, err := os.Stat(zip); err != nil {
 		return err
@@ -128,7 +166,8 @@ func importCmd(zip, apk string) error {
 	if _, err := adb("logcat", "-c"); err != nil {
 		return err
 	}
-	if _, err := adb("shell", "am", "start", "-n", app+"/.MainActivity", "--es", "zip", exportFile); err != nil {
+	launch := append([]string{"shell", "am", "start", "-n", app + "/.MainActivity", "--es", "zip", exportFile}, extras...)
+	if _, err := adb(launch...); err != nil {
 		return err
 	}
 	if err := followLog(); err != nil {

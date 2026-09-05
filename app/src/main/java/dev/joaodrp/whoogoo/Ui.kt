@@ -1,6 +1,7 @@
 package dev.joaodrp.whoogoo
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,10 +14,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -46,6 +51,13 @@ sealed interface Ui {
 
     data object Reading : Ui
 
+    /** What the export holds, and which of it the person wants moved. */
+    data class Choosing(val counts: Map<String, Int>, val selected: Set<String>) : Ui {
+        fun toggle(type: String) = copy(selected = if (type in selected) selected - type else selected + type)
+
+        val total: Int get() = counts.filterKeys { it in selected }.values.sum()
+    }
+
     data class Running(val done: Int, val total: Int, val from: LocalDate, val to: LocalDate, val at: LocalDate) : Ui
 
     data class Done(val counts: Map<String, Int>) : Ui
@@ -64,6 +76,7 @@ private val geist = FontFamily(
 private val ultramarine = Color(0xFF1E2BFF)
 private val white = Color.White
 private val soft = Color(0xD9FFFFFF)
+private val dim = Color(0x66FFFFFF)
 private val track = Color(0x38FFFFFF)
 private val black = Color(0xFF0A0A0F)
 
@@ -105,7 +118,7 @@ private val month: DateTimeFormatter = DateTimeFormatter.ofPattern("MMMM\nyyyy")
 private val day: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM yyyy")
 
 @Composable
-fun App(ui: Ui, onPick: () -> Unit, onReset: () -> Unit) {
+fun App(ui: Ui, onPick: () -> Unit, onReset: () -> Unit, onToggle: (String) -> Unit, onImport: () -> Unit) {
     val scheme =
         darkColorScheme(
             primary = black,
@@ -125,68 +138,103 @@ fun App(ui: Ui, onPick: () -> Unit, onReset: () -> Unit) {
                     Icon(ImageVector.vectorResource(R.drawable.mark), null, Modifier.size(22.dp), tint = white)
                     Text("whoogoo", style = small.copy(fontWeight = FontWeight.Bold), color = white)
                 }
-                Spacer(Modifier.weight(1f))
-                when (ui) {
-                    Ui.Idle -> {
-                        Text("Your WHOOP\nhistory, into\nGoogle Health.", style = title, color = white)
-                        Text(
-                            "Choose the export zip WHOOP emailed you. Sleep, vitals and workouts go into Health " +
-                                "Connect, and Google Health syncs them to your account.",
-                            style = body,
-                            color = soft,
-                            modifier = Modifier.padding(top = 20.dp)
-                        )
-                    }
-
-                    Ui.Reading -> {
-                        Text("Reading\nyour export", style = display, color = white)
-                        Band(0f)
-                    }
-
-                    is Ui.Running -> {
-                        Text(month.format(ui.at), style = display, color = white)
-                        Text(
-                            "%,d of %,d records moved".format(ui.done, ui.total),
-                            style = body,
-                            color = soft,
-                            modifier = Modifier.padding(top = 16.dp)
-                        )
-                        val span = ChronoUnit.DAYS.between(ui.from, ui.to).coerceAtLeast(1)
-                        Band(ChronoUnit.DAYS.between(ui.from, ui.at).toFloat() / span)
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(day.format(ui.from), style = small, color = soft)
-                            Text(day.format(ui.to), style = small, color = soft)
+                Column(
+                    Modifier.weight(1f).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    when (ui) {
+                        Ui.Idle -> {
+                            Text("Your WHOOP\nhistory, into\nGoogle Health.", style = title, color = white)
+                            Text(
+                                "Choose the export zip WHOOP emailed you. Sleep, vitals and workouts go into Health " +
+                                    "Connect, and Google Health syncs them to your account.",
+                                style = body,
+                                color = soft,
+                                modifier = Modifier.padding(top = 20.dp)
+                            )
                         }
-                    }
 
-                    is Ui.Done -> {
-                        Text("All moved\nover.", style = title, color = white)
-                        Column(Modifier.padding(top = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            for ((type, label) in labels) {
-                                val n = ui.counts[type] ?: continue
-                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    Text(label, style = body, color = soft)
-                                    Text("%,d".format(n), style = figure, color = white)
+                        Ui.Reading -> {
+                            Text("Reading\nyour export", style = display, color = white)
+                            Band(0f)
+                        }
+
+                        is Ui.Choosing -> {
+                            Text("What should\nmove over?", style = title, color = white)
+                            Column(Modifier.padding(top = 20.dp)) {
+                                for ((type, label) in labels) {
+                                    val n = ui.counts[type] ?: continue
+                                    val on = type in ui.selected
+                                    Row(
+                                        Modifier.fillMaxWidth().clickable { onToggle(type) },
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            label,
+                                            style = body,
+                                            color = if (on) soft else dim,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Text("%,d".format(n), style = figure, color = if (on) white else dim)
+                                        Checkbox(
+                                            checked = on,
+                                            onCheckedChange = { onToggle(type) },
+                                            colors = CheckboxDefaults.colors(
+                                                checkedColor = white,
+                                                checkmarkColor = ultramarine,
+                                                uncheckedColor = track
+                                            )
+                                        )
+                                    }
                                 }
                             }
                         }
-                        Text(
-                            "Now open Google Health, connect Health Connect and allow historical data. " +
-                                "Older records take a while to show up.",
-                            style = body,
-                            color = soft,
-                            modifier = Modifier.padding(top = 24.dp)
-                        )
-                    }
 
-                    is Ui.Failed -> {
-                        Text("That didn't\nwork.", style = title, color = white)
-                        Text(ui.message, style = body, color = soft, modifier = Modifier.padding(top = 20.dp))
+                        is Ui.Running -> {
+                            Text(month.format(ui.at), style = display, color = white)
+                            Text(
+                                "%,d of %,d records moved".format(ui.done, ui.total),
+                                style = body,
+                                color = soft,
+                                modifier = Modifier.padding(top = 16.dp)
+                            )
+                            val span = ChronoUnit.DAYS.between(ui.from, ui.to).coerceAtLeast(1)
+                            Band(ChronoUnit.DAYS.between(ui.from, ui.at).toFloat() / span)
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text(day.format(ui.from), style = small, color = soft)
+                                Text(day.format(ui.to), style = small, color = soft)
+                            }
+                        }
+
+                        is Ui.Done -> {
+                            Text("All moved\nover.", style = title, color = white)
+                            Column(Modifier.padding(top = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                for ((type, label) in labels) {
+                                    val n = ui.counts[type] ?: continue
+                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Text(label, style = body, color = soft)
+                                        Text("%,d".format(n), style = figure, color = white)
+                                    }
+                                }
+                            }
+                            Text(
+                                "Now open Google Health, connect Health Connect and allow historical data. " +
+                                    "Older records take a while to show up.",
+                                style = body,
+                                color = soft,
+                                modifier = Modifier.padding(top = 24.dp)
+                            )
+                        }
+
+                        is Ui.Failed -> {
+                            Text("That didn't\nwork.", style = title, color = white)
+                            Text(ui.message, style = body, color = soft, modifier = Modifier.padding(top = 20.dp))
+                        }
                     }
                 }
-                Spacer(Modifier.weight(1f))
                 when (ui) {
                     Ui.Idle -> Action("Choose export", onPick)
+                    is Ui.Choosing -> Action("Import %,d records".format(ui.total), onImport, enabled = ui.total > 0)
                     is Ui.Done -> Action("Import another export", onPick)
                     is Ui.Failed -> Action("Try again", onReset)
                     else -> Spacer(Modifier.height(56.dp))
@@ -214,10 +262,11 @@ private fun Band(fraction: Float) {
 }
 
 @Composable
-private fun Action(label: String, onClick: () -> Unit) {
+private fun Action(label: String, onClick: () -> Unit, enabled: Boolean = true) {
     Button(
         onClick,
         Modifier.fillMaxWidth().height(56.dp),
+        enabled = enabled,
         shape = CircleShape,
         colors = ButtonDefaults.buttonColors(containerColor = black, contentColor = white)
     ) {

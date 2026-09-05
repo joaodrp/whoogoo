@@ -37,7 +37,9 @@ Request your export in the WHOOP app (More -> App settings -> Data export) and w
 1. Download `whoogoo_<version>.apk` from the
    [latest release](https://github.com/joaodrp/whoogoo/releases/latest) and open it to install
    (Android asks you to allow installs from your browser or Files app).
-2. Open Whoogoo, choose the export zip and allow the Health Connect permissions it asks for.
+2. Open Whoogoo, choose the export zip and allow the Health Connect permissions it asks for. The
+   app lists what the export holds and how many records of each kind; untick anything you would
+   rather leave behind, then import.
 3. Follow [Sync to your Google account](#sync-to-your-google-account) below, in Google Health on
    the phone.
 
@@ -78,6 +80,13 @@ whoogoo emu                             # boots the Pixel 10 / Android 17 emulat
 whoogoo import my_whoop_data.zip        # in another terminal: installs the app, hands it the export, shows progress
 ```
 
+`import` takes the whole export by default. `--skip` leaves record types out and `--from` and
+`--until` limit the dates, which is how you stop where another device took over:
+
+```sh
+whoogoo import --skip exercise,active_calories --until 2026-05-31 my_whoop_data.zip
+```
+
 `whoogoo doctor` is the read-only version of `setup`, and `setup -y` runs the fixes without asking.
 Every command has `--help`; `whoogoo completion <shell>` prints shell completions.
 
@@ -106,6 +115,12 @@ Menu names follow Google's help pages and may differ slightly between app versio
 Google Health computes its own sleep score and Cardio Load from first-party devices only, so
 imported nights show duration and stages but no score.
 
+Skin temperature is the one value Google Health redraws its own way. WHOOP exports an absolute
+nightly temperature, Health Connect stores it as a baseline plus a nightly delta, and Google Health
+shows a variation against a baseline it works out from your recent nights. Until it has enough
+nights, the first night or two of an import are displayed as the absolute temperature, so a reading
+like "+33.9 C" there is a rendering artefact, not a wrong measurement.
+
 ## Verify the sync (optional)
 
 `whoogoo verify` reads your account through the Google Health API and diffs it against what the
@@ -128,10 +143,26 @@ last `whoogoo import` loaded, per type: matched, value differs, missing. One-tim
 The first run opens a browser for consent (read-only scopes) and prints where it cached the token.
 Calories are not checked: the API only exposes them as daily rollups.
 
+## If you already have some of this data
+
+Health Connect keeps one copy per app, so a night that another app already wrote is stored twice,
+once from that app and once from whoogoo. Google Health then shows only one of them, the copy it
+already had, and the whoogoo copy stays hidden. Nights and workouts that nothing else recorded show
+up normally. Two ways to avoid the overlap: untick those types in the app, or pass `--until` with
+the day before your new device started.
+
 ## Start over
 
-Delete the app's data in Health Connect (Data and access -> App permissions -> Whoogoo -> Delete
-app data), or on the emulator delete the virtual device and run `whoogoo emu` again.
+In Health Connect: App permissions -> Whoogoo -> See app data, then the delete icon, tick the
+types and delete. That removes what whoogoo wrote and nothing else. On the emulator you can instead
+delete the virtual device and run `whoogoo emu` again.
+
+Data that has already synced to your Google account is a separate copy. Deleting in Health Connect
+propagates to the account, but not always quickly: in testing, workouts disappeared within minutes
+while sleep and daily vitals were still there an hour later. Google Health can delete its own copy
+directly, per data type and date range, under profile -> Your data in Google Health -> Deletion
+options. That deletes every source for those dates, not just whoogoo's, so pick the range with
+care.
 
 ## Development
 
