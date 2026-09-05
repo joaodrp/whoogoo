@@ -51,8 +51,6 @@ is worse than a missing one.
 | Recovery, strain, sleep scores, heart rate zones, max and average heart rate, journal entries | ❌ | | no matching type in Health Connect |
 | VO2 max | ❌ | | not in the export at all |
 
-Re-running an import updates records instead of duplicating them.
-
 ## Do it in slices
 
 A few years of WHOOP is a few thousand records, and the slowest part is not the import but Google
@@ -63,9 +61,10 @@ Nothing is lost by going slowly, and nothing is duplicated by overlapping slices
 carries an identifier derived from its WHOOP timestamp, so importing the same days again updates
 what is there.
 
-## On an Android phone
+Both paths below start the same way: request your export in the WHOOP app (More -> App settings ->
+Data export) and wait for the email.
 
-Request your export in the WHOOP app (More -> App settings -> Data export) and wait for the email.
+## On an Android phone
 
 1. Download `whoogoo_<version>.apk` from the
    [latest release](https://github.com/joaodrp/whoogoo/releases/latest) and open it to install
@@ -73,7 +72,7 @@ Request your export in the WHOOP app (More -> App settings -> Data export) and w
 2. Open Whoogoo, choose the export zip and allow the Health Connect permissions it asks for. The
    app lists what the export holds and how many records of each kind. It takes everything by
    default; untick what you would rather leave behind, and drag the two handles under "Change" to
-   import only part of the history, which is how you stop where another device took over.
+   import only part of the history.
 3. Follow [Sync to your Google account](#sync-to-your-google-account) below, in Google Health on
    the phone.
 
@@ -105,8 +104,6 @@ or download the archive for your platform from the
 [latest release](https://github.com/joaodrp/whoogoo/releases/latest) and put `whoogoo` on your `PATH`.
 
 ### Steps
-
-Request your export in the WHOOP app (More -> App settings -> Data export) and wait for the email.
 
 ```sh
 whoogoo setup                           # checks the SDK, offers to install what is missing, creates the device
@@ -142,7 +139,7 @@ On the phone, or in the emulator window:
 2. Open Google Health and sign in.
 3. In Google Health: Connections -> Health Connect (or Partner apps -> Set up Health Connect). Allow
    all data types, then under Additional access enable Historical data and background access.
-4. Leave Google Health open until it finishes syncing. See below for what that takes.
+4. That is the whole setup. Syncing starts on its own; see Timing below.
 
 Menu names follow Google's help pages and may differ slightly between app versions.
 
@@ -153,8 +150,8 @@ Health's own schedule.
 
 - **It takes a while.** Not seconds, and not on a schedule you control. Start it and come back
   later.
-- **Google Health has to be set up**: installed, signed in, and allowed to read past data. Without
-  that, an import goes no further than Health Connect.
+- **Google Health has to be set up first**, as above. Without it an import goes no further than
+  Health Connect.
 - **It does not need to be in the foreground.** Copying has run with it in the background, and with
   another app on screen. Opening it does no harm if you want to check progress.
 - **Interrupting is safe.** A part-finished sync carries on later, and records already copied are
@@ -188,10 +185,12 @@ last `whoogoo import` loaded, per type: matched, value differs, missing. One-tim
 
 The first run opens a browser for consent (read-only scopes) and prints where it cached the token.
 
-Two limits worth knowing: Google stores the vitals as one value per day, so it compares a day with
+One limit worth knowing: Google stores the vitals as one value per day, so it compares a day with
 both a nap and a night sleep against their average and reports a difference, even though both
-records are correct. And where another app covers the same day, a match may be against that app's
-copy rather than whoogoo's.
+records are correct.
+
+Records written by other apps are counted separately, under "other", and never as a match for
+yours.
 
 ## Overlap with other apps
 
@@ -209,9 +208,6 @@ as a phone syncing WHOOP through Apple Health, is invisible to it. For that, eit
 types or pass `--until` with the day before your other device took over.
 
 ## Privacy
-
-whoogoo writes to Health Connect. It reads from it only if you turn on "leave out what I have" on
-the choosing screen, which asks for read access at that moment and not before.
 
 The released APK is a debug build, because the command line needs that to talk to the app on an
 emulator. Installing it on a real phone has one consequence worth knowing: anyone who can reach
