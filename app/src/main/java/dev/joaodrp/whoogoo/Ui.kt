@@ -336,11 +336,11 @@ fun App(
                                 }
                                 Text(
                                     if (ui.removed) {
-                                        "Open Google Health and leave it open. Removing workouts reaches your " +
-                                            "account the same way adding them does, and takes about as long."
+                                        "Removing these from your account happens the same way adding them " +
+                                            "did: Google Health carries it across in its own time."
                                     } else {
-                                        "Open Google Health and leave it open while it copies this across. " +
-                                            "Older records take a while."
+                                        "Google Health carries this to your account in its own time. Leave it " +
+                                            "running and come back later."
                                     },
                                     style = body,
                                     color = soft,

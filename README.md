@@ -133,20 +133,19 @@ On the phone, or in the emulator window:
 
 Menu names follow Google's help pages and may differ slightly between app versions.
 
-### How long it takes
+### Timing
 
-Google Health copies from Health Connect on its own schedule, and the copying is the slow half of
-this whole exercise. What that means in practice:
+An import writes to Health Connect and finishes. Your account catches up afterwards, on Google
+Health's own schedule.
 
-- **It only moves while Google Health is open.** On the emulator, that means the emulator running
-  and the app in the foreground. Closing either pauses it.
-- **Nothing arrives until you open the app after an import.** An import on its own changes only
-  Health Connect.
-- **Allow real time.** Roughly a quarter of an hour for a month of data, around 140 records, and
-  about twice that for a quarter, around 420. A few years takes hours, which is the argument for
-  slices.
-- **Interrupting is safe.** A part-finished sync resumes where it stopped the next time the app
-  opens. Records already copied are not copied twice.
+- **It takes a while.** Not seconds, and not on a schedule you control. Start it and come back
+  later.
+- **Google Health has to be set up**: installed, signed in, and allowed to read past data. Without
+  that, an import goes no further than Health Connect.
+- **It does not need to be in the foreground.** Copying has run with it in the background, and with
+  another app on screen. Opening it does no harm if you want to check progress.
+- **Interrupting is safe.** A part-finished sync carries on later, and records already copied are
+  not copied twice.
 - **On the emulator, only the first sign-in needs a window.** Once the account is set up,
   `whoogoo emu --headless` syncs perfectly well and stays out of your way.
 
@@ -215,10 +214,9 @@ delete the virtual device and run `whoogoo emu` again.
 Data that has already synced to your Google account is a separate copy, and deleting in Health
 Connect removes it only for workouts.
 
-Those deletions travel the same way an import does, so the same rules apply: Google Health has to
-be open, and it takes a while. Thirteen workouts cleared the account about twenty minutes after
-being deleted in Health Connect. Nothing appears to happen until it does, so leave it running
-rather than deleting again.
+Those deletions travel the same way an import does, so the same applies: Google Health has to be
+set up, and it takes a while. Nothing appears to happen until it does, so leave it alone rather
+than deleting again.
 
 The daily vitals do not travel at all. They stay in the account long after Health Connect has let
 them go, and the Google Health API cannot delete them either: it can create and remove workouts,
