@@ -19,8 +19,8 @@ where the Google Health app carries it into your account: Google Health has no f
 API cannot write the daily vitals. Without an Android phone, the `whoogoo` command line tool runs
 the app on an emulator and checks afterwards that everything arrived.
 
-A one-time migration, not a sync. It moves what is in the export and stops; run it again with a
-newer export and it updates what it already wrote.
+A one-time migration, not a sync. It moves what is in the export and stops, and nothing keeps
+watching your WHOOP account. Run it again with a newer export and it updates what it already wrote.
 
 <p align="center">
   <img src="docs/screenshots/01-idle.png" width="31%" alt="The opening screen">
