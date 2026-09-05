@@ -237,13 +237,13 @@ type spec struct {
 	tol      float64
 }
 
-// daily builds a spec for a per-day API type. recField is the record's timestamp, valueField the
-// number inside the API object (e.g. dailyRestingHeartRate.beatsPerMinute).
-func daily(name, dataType, recField, valueField string, value func(Record) any, tol float64) spec {
+// daily builds a spec for a per-day API type. valueField is the number inside the API object,
+// e.g. dailyRestingHeartRate.beatsPerMinute.
+func daily(name, dataType, valueField string, value func(Record) any, tol float64) spec {
 	snake := strings.ReplaceAll(dataType, "-", "_")
 	camel := lowerCamel(snake)
 	return spec{name: name, dataType: dataType, field: snake + ".date", daily: true,
-		key:    func(r Record) string { return dateKey(rstr(r, recField)) },
+		key:    func(r Record) string { return dateKey(rstr(r, "time")) },
 		gkey:   func(p point) string { return gdate(p, camel) },
 		value:  value,
 		gvalue: func(p point) any { return gnum(p, camel, valueField) },
@@ -259,14 +259,6 @@ func lowerCamel(snake string) string {
 }
 
 var specs = []spec{
-	{name: "sleep", dataType: "sleep", field: "sleep.interval.civil_end_time",
-		key:   func(r Record) string { return minuteKey(rstr(r, "start")) },
-		gkey:  func(p point) string { return minuteKey(str(p, "sleep", "interval", "startTime")) },
-		value: func(r Record) any { return minutes(rstr(r, "start"), rstr(r, "end")) },
-		gvalue: func(p point) any {
-			return minutes(str(p, "sleep", "interval", "startTime"), str(p, "sleep", "interval", "endTime"))
-		},
-		tol: 2},
 	{name: "exercise", dataType: "exercise", field: "exercise.interval.civil_start_time",
 		key:   func(r Record) string { return minuteKey(rstr(r, "start")) },
 		gkey:  func(p point) string { return minuteKey(str(p, "exercise", "interval", "startTime")) },
@@ -275,12 +267,10 @@ var specs = []spec{
 			return minutes(str(p, "exercise", "interval", "startTime"), str(p, "exercise", "interval", "endTime"))
 		},
 		tol: 2},
-	daily("resting_heart_rate", "daily-resting-heart-rate", "time", "beatsPerMinute", func(r Record) any { return f(r["bpm"]) }, 1),
-	daily("hrv", "daily-heart-rate-variability", "time", "averageHeartRateVariabilityMilliseconds", func(r Record) any { return f(r["ms"]) }, 1),
-	daily("spo2", "daily-oxygen-saturation", "time", "averagePercentage", func(r Record) any { return f(r["pct"]) }, 0.5),
-	daily("respiratory_rate", "daily-respiratory-rate", "time", "breathsPerMinute", func(r Record) any { return f(r["rpm"]) }, 0.5),
-	daily("skin_temperature", "daily-sleep-temperature-derivations", "end", "nightlyTemperatureCelsius",
-		func(r Record) any { return f(r["baseline"]) + f(r["delta"]) }, 0.3),
+	daily("resting_heart_rate", "daily-resting-heart-rate", "beatsPerMinute", func(r Record) any { return f(r["bpm"]) }, 1),
+	daily("hrv", "daily-heart-rate-variability", "averageHeartRateVariabilityMilliseconds", func(r Record) any { return f(r["ms"]) }, 1),
+	daily("spo2", "daily-oxygen-saturation", "averagePercentage", func(r Record) any { return f(r["pct"]) }, 0.5),
+	daily("respiratory_rate", "daily-respiratory-rate", "breathsPerMinute", func(r Record) any { return f(r["rpm"]) }, 0.5),
 }
 
 func close_(a, b any, tol float64) bool {

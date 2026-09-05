@@ -81,8 +81,7 @@ func downloadAPK() (string, error) {
 }
 
 // recordTypes are the "type" values Convert.kt writes; --skip names them.
-var recordTypes = []string{"sleep", "respiratory_rate", "resting_heart_rate", "hrv", "spo2",
-	"skin_temperature", "total_calories", "exercise", "active_calories"}
+var recordTypes = []string{"resting_heart_rate", "hrv", "spo2", "respiratory_rate", "exercise"}
 
 // filters narrow what the app imports; empty fields mean everything.
 type filters struct {

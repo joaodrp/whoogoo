@@ -25,12 +25,13 @@ with them the app imports straight away, without them it asks which types to imp
 lines; `done` ends the import and the CLI pulls `files/records.json`, a line starting with
 `error:` fails it. Anything else keeps the CLI waiting until its timeout.
 
-**Health Connect validates.** Times are local with the WHOOP cycle's offset; a skin temperature
-delta must sit strictly inside its record interval, and its record must carry a baseline, because
-Google Health derives the nightly temperature from baseline plus delta and silently imports nothing
-when the baseline is absent (measured: a sample written without one synced its other types and no
-temperature at all). Sleep sessions carry no stages: the export has stage totals but no intervals,
-and inventing a hypnogram to fit was ruled out, so the totals go in the session's notes. Permissions come from the manifest at runtime (`pm grant` over adb, the app
+**Health Connect validates.** Times are local with the WHOOP cycle's offset, and the permissions
+come from the manifest at runtime (`pm grant` over adb, the app reads `requestedPermissions`), so
+the manifest is the only list.
+
+**Only what survives the trip is imported.** Sleep, skin temperature and calories were all measured
+and then deliberately dropped; the README's "What is left out, and why" holds the reasoning and the
+evidence. Do not add them back without new evidence that the numbers land correctly. Permissions come from the manifest at runtime (`pm grant` over adb, the app
 reads `requestedPermissions`), so the manifest is the only list.
 
 **Run it for real.** `mise run check` (lint, the conversion's JVM tests and the CLI's tests)

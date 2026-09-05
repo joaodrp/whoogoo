@@ -108,10 +108,11 @@ private val figure =
     )
 
 private val labels = mapOf(
-    "sleep" to "Nights of sleep", "respiratory_rate" to "Respiratory rate",
-    "resting_heart_rate" to "Resting heart rate", "hrv" to "Heart rate variability", "spo2" to "Blood oxygen",
-    "skin_temperature" to "Skin temperature", "total_calories" to "Daily calories", "exercise" to "Workouts",
-    "active_calories" to "Workout calories"
+    "resting_heart_rate" to "Resting heart rate",
+    "hrv" to "Heart rate variability",
+    "spo2" to "Blood oxygen",
+    "respiratory_rate" to "Respiratory rate",
+    "exercise" to "Workouts"
 )
 
 private val month: DateTimeFormatter = DateTimeFormatter.ofPattern("MMMM\nyyyy")
@@ -146,7 +147,7 @@ fun App(ui: Ui, onPick: () -> Unit, onReset: () -> Unit, onToggle: (String) -> U
                         Ui.Idle -> {
                             Text("Your WHOOP\nhistory, into\nGoogle Health.", style = title, color = white)
                             Text(
-                                "Choose the export zip WHOOP emailed you. Sleep, vitals and workouts go into Health " +
+                                "Choose the export zip WHOOP emailed you. Your vitals and workouts go into Health " +
                                     "Connect, and Google Health syncs them to your account.",
                                 style = body,
                                 color = soft,

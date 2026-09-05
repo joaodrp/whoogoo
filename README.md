@@ -1,11 +1,12 @@
 # whoogoo
 
-Import your WHOOP data export into Google Health. Works on an Android phone, or on an Android
-emulator on your computer if you have no phone.
+Import your WHOOP vitals and workout history into Google Health. Works on an Android phone, or on
+an Android emulator on your computer if you have no phone.
 
-Google Health has no file import, and its cloud API cannot write vitals. Android Health Connect can
-write everything WHOOP exports that Google Health understands, and the Google Health Android app
-syncs Health Connect data, history included, into your account. The whoogoo app runs that chain:
+Google Health has no file import, and its cloud API cannot write vitals. Android Health Connect
+can, and the Google Health Android app syncs Health Connect data, history included, into your
+account. The whoogoo app runs that chain, carrying across the parts of the export that survive the
+trip intact and leaving the rest out:
 
 ```
 WHOOP export zip -> whoogoo app -> Health Connect -> Google Health app -> your account
@@ -15,26 +16,37 @@ WHOOP export zip -> whoogoo app -> Health Connect -> Google Health app -> your a
 
 | WHOOP | Google Health | Note |
 |---|---|---|
-| Sleep onset, wake onset | Sleep session | start, end and time in bed; the stage totals ride along as a note on the session |
-| Respiratory rate | Respiratory rate | stamped at wake time |
-| Resting heart rate | Resting heart rate | stamped at wake time |
+| Resting heart rate | Resting heart rate | measured during sleep, stamped at wake time |
 | Heart rate variability | HRV (RMSSD) | WHOOP HRV is RMSSD |
-| Blood oxygen | Oxygen saturation | |
-| Skin temp | Skin temperature | baseline = your mean over the export, delta = that night minus baseline |
-| Day energy burned | Total calories burned | over the physiological cycle |
-| Workout | Exercise session | WHOOP activity mapped to a Health Connect exercise type, name kept as title |
-| Workout energy burned | Active calories burned | |
+| Blood oxygen | Oxygen saturation | a night average, stamped at wake time |
+| Respiratory rate | Respiratory rate | a night average, stamped at wake time |
+| Workout | Exercise session | the WHOOP activity mapped to a Health Connect exercise type, its name kept as the title |
 
-Not imported because Health Connect has no matching type: recovery, strain, sleep
-performance/need/debt/efficiency/consistency, HR zones, max/average HR, journal entries. Nor VO2
-max, which WHOOP does not put in the export at all.
+## What is left out, and why
 
-**Sleep stages are a gap of a different kind.** Health Connect stores stages as intervals, and the
-export says only how many minutes each stage lasted, never when. There is nothing to place on a
-timeline, and whoogoo will not invent one, so imported nights show duration and time in bed but no
-hypnogram and no per-stage figures in Google Health. The totals are still carried, as a note on the
-session that reads like "WHOOP stage totals: light 3h29m, deep 1h28m, REM 1h37m, awake 21m",
-which Google Health may or may not display.
+Anything whoogoo cannot carry across truthfully is left out. A wrong number in your health history
+is worse than a missing one.
+
+**Sleep.** The export says how many minutes each stage lasted, never when. Health Connect stores
+sleep as a session made of staged intervals, so importing it means inventing a timeline: with
+stages the shape is fabricated, and without them Google Health reads the whole session as sleep and
+records your awake time as zero, overstating some nights by half an hour. Neither is true, so sleep
+is not imported.
+
+**Skin temperature.** WHOOP measures an absolute nightly temperature and it survives the trip
+intact, but Health Connect stores temperature as a baseline plus a nightly delta, and Google Health
+throws our baseline away and recomputes the variation from its own. Until it has enough nights it
+prints the absolute temperature as a variation, so every import would open with a reading like
+"+33.9 C". Writing the record without a baseline stops the data arriving at all.
+
+**Calories, daily and per workout.** Every device estimates calories its own way, so mixing WHOOP's
+numbers into a history that also holds another device's compares things that are not comparable.
+WHOOP's per-workout figure also includes the resting energy burned during the workout, which is not
+what Health Connect's active calories mean.
+
+**No matching type in Health Connect:** recovery, strain, sleep performance, need, debt, efficiency
+and consistency, heart rate zones, max and average heart rate, journal entries. VO2 max is missing
+for a different reason: the export does not contain it.
 
 Re-running an import updates records instead of duplicating them.
 
@@ -92,7 +104,7 @@ whoogoo import my_whoop_data.zip        # in another terminal: installs the app,
 `--until` limit the dates, which is how you stop where another device took over:
 
 ```sh
-whoogoo import --skip exercise,active_calories --until 2026-05-31 my_whoop_data.zip
+whoogoo import --skip exercise --until 2026-05-31 my_whoop_data.zip
 ```
 
 `whoogoo doctor` is the read-only version of `setup`, and `setup -y` runs the fixes without asking.
@@ -120,14 +132,8 @@ On the phone, or in the emulator window:
 
 Menu names follow Google's help pages and may differ slightly between app versions.
 
-Google Health computes its own sleep score and Cardio Load from first-party devices only, so
-imported nights show duration and stages but no score.
-
-Skin temperature is the one value Google Health redraws its own way. WHOOP exports an absolute
-nightly temperature, Health Connect stores it as a baseline plus a nightly delta, and Google Health
-shows a variation against a baseline it works out from your recent nights. Until it has enough
-nights, the first night or two of an import are displayed as the absolute temperature, so a reading
-like "+33.9 C" there is a rendering artefact, not a wrong measurement.
+Google Health computes Cardio Load and its other scores from first-party devices only, so imported
+history feeds the charts and trends without producing scores.
 
 ## Verify the sync (optional)
 
@@ -153,9 +159,9 @@ Calories are not checked: the API only exposes them as daily rollups.
 
 ## If you already have some of this data
 
-Health Connect keeps one copy per app, so a night that another app already wrote is stored twice,
+Health Connect keeps one copy per app, so a day that another app already wrote is stored twice,
 once from that app and once from whoogoo. Google Health then shows only one of them, the copy it
-already had, and the whoogoo copy stays hidden. Nights and workouts that nothing else recorded show
+already had, and the whoogoo copy stays hidden. Days and workouts that nothing else recorded show
 up normally. Two ways to avoid the overlap: untick those types in the app, or pass `--until` with
 the day before your new device started.
 

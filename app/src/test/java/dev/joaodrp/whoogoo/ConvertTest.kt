@@ -30,20 +30,20 @@ class ConvertTest {
     fun convertsEveryType() {
         val records = convert(csvs)
         val want = mapOf(
-            "sleep" to 1, "respiratory_rate" to 1, "total_calories" to 1, "resting_heart_rate" to 2,
-            "hrv" to 2, "spo2" to 2, "skin_temperature" to 2, "exercise" to 2, "active_calories" to 1
+            "respiratory_rate" to 1,
+            "resting_heart_rate" to 2,
+            "hrv" to 2,
+            "spo2" to 2,
+            "exercise" to 2
         )
         assertEquals(want, counts(records))
         assertEquals(
-            "14 records (active_calories=1 exercise=2 hrv=2 respiratory_rate=1 resting_heart_rate=2 skin_temperature=2 sleep=1 spo2=2 total_calories=1)",
+            "9 records (exercise=2 hrv=2 respiratory_rate=1 resting_heart_rate=2 spo2=2)",
             countsString(counts(records))
         )
         assertEquals(records.sortedBy { it.time() }, records)
 
         val by = records.associateBy { it["id"] }
-        val sleep = by.getValue("whoop:sleep:2026-07-26 00:10:39")
-        assertEquals("2026-07-26T00:10:39+01:00", sleep["start"])
-        assertEquals("WHOOP stage totals: light 3h59m, deep 1h50m, REM 1h18m, awake 22m", sleep["notes"])
 
         val odd = by.getValue("whoop:workout:2026-07-26 20:00:00")
         assertEquals("OTHER_WORKOUT", odd["exerciseType"])
@@ -51,17 +51,13 @@ class ConvertTest {
         assertEquals("2026-07-26T20:00:00+01:00", odd["start"]) // seconds always written
         assertEquals("2026-07-27T07:52:09Z", by.getValue("whoop:rhr:2026-07-26 23:52:10")["time"])
         assertEquals(59L, by.getValue("whoop:rhr:2026-07-26 23:52:10")["bpm"])
-
-        val temp = by.getValue("whoop:temp:2026-07-26 23:52:10")
-        val reconstructed = temp["baseline"] as Double + temp["delta"] as Double
-        assertTrue("skin temp reconstructs to $reconstructed", reconstructed in 33.81..33.83)
     }
 
     @Test
     fun rejectsBadCells() {
-        val bad = csvs + ("workouts.csv" to WORKOUTS.replace("1137.0", "lots"))
+        val bad = csvs + ("physiological_cycles.csv" to CYCLES.replace(",53,54,", ",lots,54,"))
         val e = runCatching { convert(bad) }.exceptionOrNull()
-        assertEquals("workouts.csv: Energy burned (cal): not a number", e?.message)
+        assertEquals("physiological_cycles.csv: Resting heart rate (bpm): not a number", e?.message)
     }
 
     @Test

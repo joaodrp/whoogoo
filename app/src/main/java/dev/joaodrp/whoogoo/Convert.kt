@@ -7,8 +7,6 @@ import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.zip.ZipInputStream
-import kotlin.math.round
-import kotlin.math.roundToInt
 
 /**
  * One Health Connect record as a plain map. This is the shape of records.json, which the CLI's
@@ -52,31 +50,11 @@ private val exerciseTypes = mapOf(
     "Wheelchair" to "WHEELCHAIR"
 )
 
-/** The stage totals WHOOP exports, in the order the note lists them. */
-private val stageColumns = listOf(
-    "light" to "Light sleep duration (min)",
-    "deep" to "Deep (SWS) duration (min)",
-    "REM" to "REM duration (min)",
-    "awake" to "Awake duration (min)"
-)
-
 /** A WHOOP local timestamp with its cycle timezone ("UTC+01:00" or "UTCZ"). */
 private fun parseTS(local: String, tz: String): OffsetDateTime =
     OffsetDateTime.of(LocalDateTime.parse(local.replace(' ', 'T')), ZoneOffset.of(tz.removePrefix("UTC")))
 
 private fun iso(t: OffsetDateTime): String = DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(t)
-
-private fun round2(v: Double): Double = round(v * 100) / 100
-
-/** "3h29m", "1h", "22m". */
-private fun hm(minutes: Double): String {
-    val m = minutes.roundToInt()
-    return when {
-        m < 60 -> "${m}m"
-        m % 60 == 0 -> "${m / 60}h"
-        else -> "${m / 60}h${m % 60}m"
-    }
-}
 
 /** A bad numeric cell aborts the conversion instead of becoming a zero-valued record. */
 private fun Row.num(col: String): Double =
@@ -122,50 +100,21 @@ private fun parseCSV(text: String): List<Row> {
     }
 }
 
-private fun sleeps(rows: List<Row>): List<Record> = rows.flatMap { r ->
-    val tz = r.getValue("Cycle timezone")
-    val start = parseTS(r.getValue("Sleep onset"), tz)
-    val end = parseTS(r.getValue("Wake onset"), tz)
-    // WHOOP exports how long each stage lasted, never when, and Health Connect stages are
-    // intervals. Rather than invent a hypnogram the session carries the totals as a note.
-    val totals = stageColumns.mapNotNull { (name, col) -> r.num(col).takeIf { it > 0 }?.let { name to it } }
-    val out = mutableListOf<Record>(
-        mapOf(
-            "type" to "sleep",
-            "id" to "whoop:sleep:" + r["Sleep onset"],
-            "start" to iso(start),
-            "end" to iso(end),
-            "title" to if (r["Nap"] == "true") "Nap" else "Sleep",
-            "notes" to totals.joinToString(", ", prefix = "WHOOP stage totals: ") { (name, m) -> "$name ${hm(m)}" }
-        )
+/** The sleeps file is read for the respiratory rate alone; the README says why sleep is left out. */
+private fun sleeps(rows: List<Row>): List<Record> = rows.filter { it.has("Respiratory rate (rpm)") }.map { r ->
+    mapOf(
+        "type" to "respiratory_rate",
+        "id" to "whoop:rr:" + r["Sleep onset"],
+        "time" to iso(parseTS(r.getValue("Wake onset"), r.getValue("Cycle timezone"))),
+        "rpm" to r.num("Respiratory rate (rpm)")
     )
-    if (r.has("Respiratory rate (rpm)")) {
-        out += mapOf(
-            "type" to "respiratory_rate",
-            "id" to "whoop:rr:" + r["Sleep onset"],
-            "time" to iso(end),
-            "rpm" to r.num("Respiratory rate (rpm)")
-        )
-    }
-    out
 }
 
 private fun cycles(rows: List<Row>): List<Record> {
-    val temps = rows.filter { it.has("Skin temp (celsius)") }.map { it.num("Skin temp (celsius)") }
-    val baseline = if (temps.isEmpty()) 0.0 else round2(temps.average())
     return rows.flatMap { r ->
         val tz = r.getValue("Cycle timezone")
         val key = r.getValue("Cycle start time")
         val out = mutableListOf<Record>()
-        if (r.has("Energy burned (cal)") && r.has("Cycle end time")) {
-            out += mapOf(
-                "type" to "total_calories",
-                "id" to "whoop:cal:$key",
-                "start" to iso(parseTS(key, tz)),
-                "end" to iso(parseTS(r.getValue("Cycle end time"), tz)),
-                "kcal" to r.num("Energy burned (cal)")
-            )
-        }
         if (!r.has("Wake onset")) return@flatMap out
         // Vitals are measured during sleep; stamp them at wake time so they land on the right day.
         val wake = iso(parseTS(r.getValue("Wake onset"), tz))
@@ -190,48 +139,22 @@ private fun cycles(rows: List<Row>): List<Record> {
         if (r.has("Blood oxygen %")) {
             out += mapOf("type" to "spo2", "id" to "whoop:spo2:$key", "time" to wake, "pct" to r.num("Blood oxygen %"))
         }
-        if (r.has("Skin temp (celsius)")) {
-            out += mapOf(
-                "type" to "skin_temperature",
-                "id" to "whoop:temp:$key",
-                "start" to iso(parseTS(r.getValue("Sleep onset"), tz)),
-                "end" to wake,
-                "baseline" to baseline,
-                "delta" to round2(r.num("Skin temp (celsius)") - baseline)
-            )
-        }
         out
     }
 }
 
-private fun workouts(rows: List<Row>): List<Record> = rows.flatMap { r ->
+private fun workouts(rows: List<Row>): List<Record> = rows.map { r ->
     val tz = r.getValue("Cycle timezone")
     val key = r.getValue("Workout start time")
-    val start = iso(parseTS(key, tz))
-    val end = iso(parseTS(r.getValue("Workout end time"), tz))
     val name = r.getValue("Activity name")
-    val out = mutableListOf<Record>(
-        mapOf(
-            "type" to "exercise",
-            "id" to "whoop:workout:$key",
-            "start" to start,
-            "end" to end,
-            "exerciseType" to (exerciseTypes[name] ?: "OTHER_WORKOUT"),
-            "title" to name
-        )
+    mapOf(
+        "type" to "exercise",
+        "id" to "whoop:workout:$key",
+        "start" to iso(parseTS(key, tz)),
+        "end" to iso(parseTS(r.getValue("Workout end time"), tz)),
+        "exerciseType" to (exerciseTypes[name] ?: "OTHER_WORKOUT"),
+        "title" to name
     )
-    val kcal = r.num("Energy burned (cal)")
-    if (kcal > 0) {
-        out +=
-            mapOf(
-                "type" to "active_calories",
-                "id" to "whoop:wcal:$key",
-                "start" to start,
-                "end" to end,
-                "kcal" to kcal
-            )
-    }
-    out
 }
 
 private val parts = listOf(
