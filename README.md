@@ -157,12 +157,12 @@ In Health Connect: App permissions -> Whoogoo -> See app data, then the delete i
 types and delete. That removes what whoogoo wrote and nothing else. On the emulator you can instead
 delete the virtual device and run `whoogoo emu` again.
 
-Data that has already synced to your Google account is a separate copy. Deleting in Health Connect
-propagates to the account, but not always quickly: in testing, workouts disappeared within minutes
-while sleep and daily vitals were still there an hour later. Google Health can delete its own copy
-directly, per data type and date range, under profile -> Your data in Google Health -> Deletion
-options. That deletes every source for those dates, not just whoogoo's, so pick the range with
-care.
+Data that has already synced to your Google account is a separate copy, and deleting in Health
+Connect does not reliably remove it. Google Health says it does, and for workouts it did within
+minutes, but in testing sleep and the daily vitals were still in the account 90 minutes later.
+Google Health can delete its own copy directly, per data type and date range, under profile ->
+Your data in Google Health -> Deletion options. That one takes effect straight away, and it deletes
+every source for those dates rather than only whoogoo's, so pick the range with care.
 
 ## Development
 
