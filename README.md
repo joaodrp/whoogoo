@@ -14,15 +14,13 @@ Import your WHOOP history into Google Health.
 
 </div>
 
-whoogoo is an Android app. Give it the export zip WHOOP emails you and it writes your history into
-Health Connect, from where the Google Health app carries it into your account. Google Health has no
-file import and its API cannot write the daily vitals, so that is the only way in. Without an
-Android phone, the `whoogoo` command line tool runs the app on an emulator on your computer and
-checks afterwards that everything arrived.
+Give the app the export zip WHOOP emails you and it writes your history into Health Connect, from
+where the Google Health app carries it into your account: Google Health has no file import, and its
+API cannot write the daily vitals. Without an Android phone, the `whoogoo` command line tool runs
+the app on an emulator and checks afterwards that everything arrived.
 
-It is a one-time migration, not a sync: it moves what is in the export and stops. Nothing runs in
-the background, and nothing keeps watching your WHOOP account. Run it again with a newer export and
-it updates what it already wrote.
+A one-time migration, not a sync. It moves what is in the export and stops; run it again with a
+newer export and it updates what it already wrote.
 
 <p align="center">
   <img src="docs/screenshots/01-idle.png" width="31%" alt="The opening screen">
