@@ -18,6 +18,15 @@ survive the trip intact and leaving the rest out:
 WHOOP export zip -> whoogoo app -> Health Connect -> Google Health app -> your account
 ```
 
+<p align="center">
+  <img src="docs/screenshots/01-idle.png" width="31%" alt="The opening screen">
+  <img src="docs/screenshots/02-choosing.png" width="31%" alt="Choosing what to import, with a caveat under each type">
+  <img src="docs/screenshots/03-months.png" width="31%" alt="Narrowing the import to a range of months">
+</p>
+
+<p align="center"><sub>Shown against an invented export, built by
+<a href="docs/sample-export.py">docs/sample-export.py</a>. No real health data appears here.</sub></p>
+
 ## What gets imported
 
 | WHOOP | Google Health | Note |
