@@ -19,6 +19,7 @@ import androidx.lifecycle.lifecycleScope
 import java.io.File
 import java.io.InputStream
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONArray
@@ -31,10 +32,16 @@ import org.json.JSONArray
  */
 class MainActivity : ComponentActivity() {
     // The manifest is the only list of Health Connect permissions.
-    private val permissions by lazy {
+    private val declared by lazy {
         packageManager.getPackageInfo(packageName, PackageManager.GET_PERMISSIONS)
-            .requestedPermissions.orEmpty().filter { it.startsWith("android.permission.health.") }.toSet()
+            .requestedPermissions.orEmpty().filter { it.startsWith("android.permission.health.") }
     }
+
+    /** Writing is what the app is for, so it is asked for up front. */
+    private val permissions by lazy { declared.filter { "WRITE_" in it }.toSet() }
+
+    /** Reading is only for the duplicate check, so it is asked for when someone taps it. */
+    private val readPermissions by lazy { declared.filter { "READ_" in it }.toSet() }
 
     private val client by lazy { HealthConnectClient.getOrCreate(this) }
     private var ui by mutableStateOf<Ui>(Ui.Idle)
@@ -44,12 +51,20 @@ class MainActivity : ComponentActivity() {
     /** What the CLI asked for; null when a person picked the file and chooses on screen. */
     private var cli: Cli? = null
 
+    /** Ids another app already covers; null until someone asks for the duplicate check. */
+    private var already: Set<String>? = null
+
     private class Cli(val skip: Set<String>, val from: LocalDate?, val until: LocalDate?)
 
     private val requestPermissions =
         registerForActivityResult(PermissionController.createRequestPermissionResultContract()) { granted ->
             val denied = permissions - granted
             if (denied.isEmpty()) read() else fail("permissions denied: $denied")
+        }
+
+    private val requestRead =
+        registerForActivityResult(PermissionController.createRequestPermissionResultContract()) { granted ->
+            if (granted.containsAll(readPermissions)) scan() else redraw(denied = true)
         }
 
     private val pickZip = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -77,6 +92,7 @@ class MainActivity : ComponentActivity() {
                     }
                 },
                 onDates = { from, until -> (ui as? Ui.Choosing)?.let { choose(it.selected, from, until) } },
+                onCheckExisting = { check() },
                 onImport = { (ui as? Ui.Choosing)?.let { importSelected(it.selected, it.from, it.until) } }
             )
         }
@@ -129,21 +145,63 @@ class MainActivity : ComponentActivity() {
     }
 
     /** Redraws the choosing screen: the counts follow the dates, the ticks do not. */
-    private fun choose(selected: Set<String>, from: LocalDate, until: LocalDate) {
+    private fun choose(selected: Set<String>, from: LocalDate, until: LocalDate, denied: Boolean = false) {
+        val inRange = filter(converted, counts(converted).keys, from, until)
         ui = Ui.Choosing(
-            counts = counts(filter(converted, counts(converted).keys, from, until)),
+            counts = counts(inRange),
+            skipped = already?.let { ids -> counts(inRange.filter { it["id"] in ids }) },
             selected = selected,
             from = from,
             until = until,
             first = converted.first().time().toLocalDate(),
-            last = converted.last().time().toLocalDate()
+            last = converted.last().time().toLocalDate(),
+            denied = denied
         )
+    }
+
+    private fun redraw(denied: Boolean = false) {
+        (ui as? Ui.Choosing)?.let { choose(it.selected, it.from, it.until, denied) }
+    }
+
+    /** Turns the duplicate check on, asking for read access the first time, or back off. */
+    private fun check() {
+        if (already != null) {
+            already = null
+            redraw()
+            return
+        }
+        lifecycleScope.launch {
+            if (client.permissionController.getGrantedPermissions().containsAll(readPermissions)) {
+                scan()
+            } else {
+                requestRead.launch(readPermissions)
+            }
+        }
+    }
+
+    /** Looks over the whole export's span once, so changing the dates afterwards costs nothing. */
+    private fun scan() = lifecycleScope.launch(Dispatchers.IO) {
+        try {
+            val found = existing(
+                client,
+                packageName,
+                converted.first().time().toInstant(),
+                converted.last().time().toInstant().plus(1, ChronoUnit.DAYS)
+            )
+            already = alreadyThere(converted, found.days, found.workouts)
+            log("already there: ${already?.size} of ${converted.size}, from ${found.apps}")
+            redraw()
+        } catch (e: Exception) {
+            log("duplicate check failed: ${e.message}")
+            redraw(denied = true)
+        }
     }
 
     private fun importSelected(types: Set<String>, from: LocalDate, until: LocalDate) =
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                insert(filter(converted, types, from, until))
+                val ids = already.orEmpty()
+                insert(filter(converted, types, from, until).filterNot { it["id"] in ids })
             } catch (e: Exception) {
                 fail(e.message ?: e.toString())
             }

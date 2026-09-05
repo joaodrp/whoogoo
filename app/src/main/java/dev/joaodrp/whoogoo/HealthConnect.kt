@@ -1,5 +1,6 @@
 package dev.joaodrp.whoogoo
 
+import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.health.connect.client.records.HeartRateVariabilityRmssdRecord
 import androidx.health.connect.client.records.OxygenSaturationRecord
@@ -8,8 +9,15 @@ import androidx.health.connect.client.records.RespiratoryRateRecord
 import androidx.health.connect.client.records.RestingHeartRateRecord
 import androidx.health.connect.client.records.metadata.Device
 import androidx.health.connect.client.records.metadata.Metadata
+import androidx.health.connect.client.request.ReadRecordsRequest
+import androidx.health.connect.client.time.TimeRangeFilter
 import androidx.health.connect.client.units.Percentage
+import java.time.Instant
+import java.time.LocalDate
 import java.time.OffsetDateTime
+import java.time.ZoneId
+import java.time.ZoneOffset
+import kotlin.reflect.KClass
 
 private val whoop = Device(manufacturer = "WHOOP", type = Device.TYPE_FITNESS_BAND)
 
@@ -77,4 +85,53 @@ fun toRecord(o: Record): HealthRecord {
 
         else -> error("unknown record type $type")
     }
+}
+
+/** What other apps have already put in Health Connect, in the shape [alreadyThere] compares against. */
+class Existing(val days: Map<String, Set<LocalDate>>, val workouts: List<LongRange>, val apps: Set<String>)
+
+/** The day a reading is filed under, by its own offset when it kept one. */
+private fun date(time: Instant, offset: ZoneOffset?): LocalDate =
+    time.atOffset(offset ?: ZoneId.systemDefault().rules.getOffset(time)).toLocalDate()
+
+/** Every page of one record type in the window, minus this app's own writes. */
+private suspend fun <T : HealthRecord> HealthConnectClient.others(
+    type: KClass<T>,
+    window: TimeRangeFilter,
+    mine: String
+): List<T> {
+    val out = mutableListOf<T>()
+    var token: String? = null
+    do {
+        val page = readRecords(ReadRecordsRequest(type, window, pageToken = token))
+        out += page.records.filter { it.metadata.dataOrigin.packageName != mine }
+        token = page.pageToken
+    } while (token != null)
+    return out
+}
+
+/**
+ * What other apps already hold between [from] and [until]. Needs the read permissions, and without
+ * READ_HEALTH_DATA_HISTORY it only ever sees the last 30 days, so the caller must hold both.
+ *
+ * The vitals repeat themselves because the interface tying their timestamps together is internal
+ * to the library.
+ */
+suspend fun existing(client: HealthConnectClient, mine: String, from: Instant, until: Instant): Existing {
+    val window = TimeRangeFilter.between(from, until)
+    val apps = mutableSetOf<String>()
+    suspend fun <T : HealthRecord> days(type: KClass<T>, at: (T) -> Pair<Instant, ZoneOffset?>): Set<LocalDate> =
+        client.others(type, window, mine)
+            .onEach { apps += it.metadata.dataOrigin.packageName }
+            .mapTo(mutableSetOf()) { at(it).let { (t, o) -> date(t, o) } }
+    val days = mapOf(
+        "resting_heart_rate" to days(RestingHeartRateRecord::class) { it.time to it.zoneOffset },
+        "hrv" to days(HeartRateVariabilityRmssdRecord::class) { it.time to it.zoneOffset },
+        "spo2" to days(OxygenSaturationRecord::class) { it.time to it.zoneOffset },
+        "respiratory_rate" to days(RespiratoryRateRecord::class) { it.time to it.zoneOffset }
+    )
+    val workouts = client.others(ExerciseSessionRecord::class, window, mine)
+        .onEach { apps += it.metadata.dataOrigin.packageName }
+        .map { it.startTime.toEpochMilli()..it.endTime.toEpochMilli() }
+    return Existing(days, workouts, apps)
 }

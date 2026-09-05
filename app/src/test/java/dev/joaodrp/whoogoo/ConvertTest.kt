@@ -3,6 +3,7 @@ package dev.joaodrp.whoogoo
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.time.LocalDate
+import java.time.OffsetDateTime
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import org.junit.Assert.assertEquals
@@ -104,5 +105,26 @@ class ConvertTest {
             z.putNextEntry(ZipEntry("my_whoop_data/journal_entries.csv"))
         }
         assertEquals(csvs, readExport(ByteArrayInputStream(buf.toByteArray())))
+    }
+
+    @Test
+    fun skipsWhatAnotherAppAlreadyHas() {
+        val records = convert(csvs)
+        val workout = records.first { it["type"] == "exercise" }
+        val start = OffsetDateTime.parse(workout["start"] as String).toInstant().toEpochMilli()
+        val end = OffsetDateTime.parse(workout["end"] as String).toInstant().toEpochMilli()
+
+        assertEquals(emptySet<String>(), alreadyThere(records, emptyMap(), emptyList()))
+
+        // A vital is one reading a night, so another app's reading that day is the same reading.
+        val day = (records.first { it["type"] == "hrv" }).time().toLocalDate()
+        assertEquals(
+            records.filter { it["type"] == "hrv" && it.time().toLocalDate() == day }.map { it["id"] },
+            alreadyThere(records, mapOf("hrv" to setOf(day)), emptyList()).toList()
+        )
+
+        // A workout only counts as the same one when it overlaps; touching at the minute does not.
+        assertEquals(setOf(workout["id"]), alreadyThere(records, emptyMap(), listOf(start + 1..end)))
+        assertEquals(emptySet<String>(), alreadyThere(records, emptyMap(), listOf(end..end + 60_000)))
     }
 }

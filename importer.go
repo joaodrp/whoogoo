@@ -26,8 +26,9 @@ const (
 
 var (
 	adbPath = sync.OnceValue(func() string { return tool("adb") })
-	// Same prefix the app filters its requested permissions on (MainActivity.kt).
-	healthPermission = regexp.MustCompile(`android\.permission\.health\.[A-Z_]+`)
+	// Writing is all an unattended import needs; the app asks for read access itself, and only
+	// when someone taps the duplicate check.
+	healthPermission = regexp.MustCompile(`android\.permission\.health\.WRITE_[A-Z_]+`)
 )
 
 func adb(args ...string) (string, error) {
@@ -146,7 +147,7 @@ func importCmd(zip, apk string, opts filters) error {
 	if _, err := adb("push", zip, staging); err != nil {
 		return err
 	}
-	// Grant whatever health permissions the installed app declares, so the manifest stays the only list.
+	// Grant whatever write permissions the installed app declares, so the manifest stays the only list.
 	dump, err := adb("shell", "dumpsys", "package", app)
 	if err != nil {
 		return err

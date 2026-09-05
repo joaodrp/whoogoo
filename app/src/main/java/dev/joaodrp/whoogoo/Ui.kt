@@ -72,9 +72,15 @@ sealed interface Ui {
         val from: LocalDate,
         val until: LocalDate,
         val first: LocalDate,
-        val last: LocalDate
+        val last: LocalDate,
+        /** How much of [counts] another app already has; null until the duplicate check has run. */
+        val skipped: Map<String, Int>? = null,
+        /** Health Connect would not hand over what other apps hold. */
+        val denied: Boolean = false
     ) : Ui {
-        val total: Int get() = counts.filterKeys { it in selected }.values.sum()
+        val skippedTotal: Int get() = skipped.orEmpty().filterKeys { it in selected }.values.sum()
+
+        val total: Int get() = counts.filterKeys { it in selected }.values.sum() - skippedTotal
 
         val wholeExport: Boolean get() = from == first && until == last
     }
@@ -151,6 +157,7 @@ fun App(
     onReset: () -> Unit,
     onToggle: (String) -> Unit,
     onDates: (LocalDate, LocalDate) -> Unit,
+    onCheckExisting: () -> Unit,
     onImport: () -> Unit
 ) {
     var picking by remember { mutableStateOf(false) }
@@ -250,12 +257,46 @@ fun App(
                                         }
                                     }
                                 }
+                                Row(
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .clickable(onClick = onCheckExisting)
+                                        .padding(top = 14.dp, bottom = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    val on = ui.skipped != null
+                                    Column(Modifier.weight(1f).padding(end = 12.dp)) {
+                                        Text("Leave out what I have", style = body, color = if (on) soft else dim)
+                                        Text(
+                                            when {
+                                                ui.denied -> "Health Connect would not let this app look"
+                                                !on -> "Check what other apps already put in Health Connect"
+                                                ui.skippedTotal == 0 -> "Nothing here came from another app"
+                                                else -> "Days another app already filled, left alone"
+                                            },
+                                            style = small,
+                                            color = dim
+                                        )
+                                    }
+                                    if (on) {
+                                        Text("-%,d".format(ui.skippedTotal), style = figure, color = white)
+                                    }
+                                    Checkbox(
+                                        checked = on,
+                                        onCheckedChange = { onCheckExisting() },
+                                        colors = CheckboxDefaults.colors(
+                                            checkedColor = white,
+                                            checkmarkColor = ultramarine,
+                                            uncheckedColor = track
+                                        )
+                                    )
+                                }
                                 Text(
                                     "Sleep, calories and skin temperature are missing on purpose: the export cannot " +
                                         "carry them across without inventing numbers.",
                                     style = small,
                                     color = dim,
-                                    modifier = Modifier.padding(top = 20.dp)
+                                    modifier = Modifier.padding(top = 14.dp)
                                 )
                             }
 

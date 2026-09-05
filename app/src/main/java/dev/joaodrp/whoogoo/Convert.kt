@@ -211,6 +211,23 @@ fun filter(records: List<Record>, types: Set<String>, from: LocalDate? = null, u
             (until == null || it.time().toLocalDate() <= until)
     }
 
+/**
+ * The ids of records another app has already covered, from what [existing] found: the days it
+ * filled per vital, and the workout intervals it holds. A vital is one reading a night, so a day
+ * someone else filled is a duplicate; a workout is a duplicate when it overlaps one already there.
+ */
+fun alreadyThere(records: List<Record>, days: Map<String, Set<LocalDate>>, workouts: List<LongRange>): Set<String> =
+    records.filter { r ->
+        val type = r["type"] as String
+        if (type == "exercise") {
+            val start = OffsetDateTime.parse(r["start"] as String).toInstant().toEpochMilli()
+            val end = OffsetDateTime.parse(r["end"] as String).toInstant().toEpochMilli()
+            workouts.any { start < it.last && end > it.first }
+        } else {
+            r.time().toLocalDate() in days[type].orEmpty()
+        }
+    }.mapTo(mutableSetOf()) { it["id"] as String }
+
 /** "N records (a=1 b=2)", the line the CLI shows. */
 fun countsString(counts: Map<String, Int>): String =
     "${counts.values.sum()} records (${counts.toSortedMap().entries.joinToString(" ") { "${it.key}=${it.value}" }})"
