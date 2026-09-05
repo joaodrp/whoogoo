@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -187,10 +186,7 @@ func importCmd(zip, apk string, opts filters) error {
 
 // followLog streams the app's log until it reports "done" or an "error:" line.
 func followLog() error {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
 	c := command(adbPath(), "logcat", "-v", "raw", "-s", "Whoogoo")
-	go func() { <-ctx.Done(); _ = c.Process.Kill() }()
 	out, err := c.StdoutPipe()
 	if err != nil {
 		return err
@@ -198,6 +194,10 @@ func followLog() error {
 	if err := c.Start(); err != nil {
 		return err
 	}
+	// Only once Start has filled in Process: killing it before that panics, and reading it
+	// concurrently with Start races.
+	stop := time.AfterFunc(timeout, func() { _ = c.Process.Kill() })
+	defer stop.Stop()
 	sc := bufio.NewScanner(out)
 	for sc.Scan() {
 		line := strings.TrimSpace(sc.Text())
