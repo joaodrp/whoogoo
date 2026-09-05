@@ -255,8 +255,10 @@ func ensureAVD() error {
 	args := []string{"create", "avd", "--force", "-n", avd, "-k", image}
 	c := command(append([]string{tool("avdmanager")}, append(args, "-d", "pixel_10")...)...)
 	c.Stdin = strings.NewReader("no\n")
-	if _, err := c.CombinedOutput(); err != nil {
-		fmt.Println("pixel_10 profile unavailable in these SDK tools, using the default profile")
+	if out, err := c.CombinedOutput(); err != nil {
+		// The profile is only one reason this fails; a missing image or an unaccepted licence
+		// looks the same from here, and blaming the profile hides them until the retry.
+		fmt.Printf("could not create %s with the pixel_10 profile, trying the default:\n%s", avd, out)
 		if err := run("no\n", append([]string{tool("avdmanager")}, args...)...); err != nil {
 			return err
 		}
