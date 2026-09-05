@@ -107,12 +107,15 @@ private val figure =
         fontFeatureSettings = "tnum"
     )
 
+/** What each record type is called on screen, and what is worth knowing before ticking it. */
+private class Kind(val label: String, val note: String)
+
 private val labels = mapOf(
-    "resting_heart_rate" to "Resting heart rate",
-    "hrv" to "Heart rate variability",
-    "spo2" to "Blood oxygen",
-    "respiratory_rate" to "Respiratory rate",
-    "exercise" to "Workouts"
+    "resting_heart_rate" to Kind("Resting heart rate", "Measured while you slept"),
+    "hrv" to Kind("Heart rate variability", "RMSSD, measured while you slept"),
+    "spo2" to Kind("Blood oxygen", "A night average, not a spot reading"),
+    "respiratory_rate" to Kind("Respiratory rate", "A night average, not a spot reading"),
+    "exercise" to Kind("Workouts", "Time and type only, no heart rate or route")
 )
 
 private val month: DateTimeFormatter = DateTimeFormatter.ofPattern("MMMM\nyyyy")
@@ -163,19 +166,17 @@ fun App(ui: Ui, onPick: () -> Unit, onReset: () -> Unit, onToggle: (String) -> U
                         is Ui.Choosing -> {
                             Text("What should\nmove over?", style = title, color = white)
                             Column(Modifier.padding(top = 20.dp)) {
-                                for ((type, label) in labels) {
+                                for ((type, kind) in labels) {
                                     val n = ui.counts[type] ?: continue
                                     val on = type in ui.selected
                                     Row(
-                                        Modifier.fillMaxWidth().clickable { onToggle(type) },
+                                        Modifier.fillMaxWidth().clickable { onToggle(type) }.padding(vertical = 6.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text(
-                                            label,
-                                            style = body,
-                                            color = if (on) soft else dim,
-                                            modifier = Modifier.weight(1f)
-                                        )
+                                        Column(Modifier.weight(1f).padding(end = 12.dp)) {
+                                            Text(kind.label, style = body, color = if (on) soft else dim)
+                                            Text(kind.note, style = small, color = dim)
+                                        }
                                         Text("%,d".format(n), style = figure, color = if (on) white else dim)
                                         Checkbox(
                                             checked = on,
@@ -189,6 +190,13 @@ fun App(ui: Ui, onPick: () -> Unit, onReset: () -> Unit, onToggle: (String) -> U
                                     }
                                 }
                             }
+                            Text(
+                                "Sleep, calories and skin temperature are missing on purpose: the export cannot " +
+                                    "carry them across without inventing numbers.",
+                                style = small,
+                                color = dim,
+                                modifier = Modifier.padding(top = 20.dp)
+                            )
                         }
 
                         is Ui.Running -> {
@@ -210,10 +218,10 @@ fun App(ui: Ui, onPick: () -> Unit, onReset: () -> Unit, onToggle: (String) -> U
                         is Ui.Done -> {
                             Text("All moved\nover.", style = title, color = white)
                             Column(Modifier.padding(top = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                for ((type, label) in labels) {
+                                for ((type, kind) in labels) {
                                     val n = ui.counts[type] ?: continue
                                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                        Text(label, style = body, color = soft)
+                                        Text(kind.label, style = body, color = soft)
                                         Text("%,d".format(n), style = figure, color = white)
                                     }
                                 }
