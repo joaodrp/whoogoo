@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -76,15 +78,31 @@ func login(clientID, secret string) (token, error) {
 		return token{}, err
 	}
 	redirect := "http://" + ln.Addr().String()
+	var buf [16]byte
+	if _, err := rand.Read(buf[:]); err != nil {
+		return token{}, err
+	}
+	state := hex.EncodeToString(buf[:])
 	code := make(chan string, 1)
 	srv := &http.Server{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Anything on this port that is not the redirect (a favicon probe, a prefetch) would
+		// otherwise win the race and abort the sign-in.
+		q := r.URL.Query()
+		if q.Get("code") == "" {
+			http.NotFound(w, r)
+			return
+		}
+		if q.Get("state") != state {
+			http.Error(w, "unexpected state", http.StatusBadRequest)
+			return
+		}
 		fmt.Fprint(w, "Signed in. You can close this tab.")
-		code <- r.URL.Query().Get("code")
+		code <- q.Get("code")
 	})}
 	go func() { _ = srv.Serve(ln) }() // ends when srv.Close runs
 	defer srv.Close()
 	q := url.Values{"client_id": {clientID}, "redirect_uri": {redirect}, "response_type": {"code"},
-		"scope": {scopes}, "access_type": {"offline"}, "prompt": {"consent"}}
+		"scope": {scopes}, "access_type": {"offline"}, "prompt": {"consent"}, "state": {state}}
 	authURL := "https://accounts.google.com/o/oauth2/v2/auth?" + q.Encode()
 	fmt.Println("Opening browser for Google sign-in...\n" + authURL)
 	openBrowser(authURL)
