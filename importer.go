@@ -208,7 +208,8 @@ func importCmd(zip, apk string, opts filters) error {
 
 // followLog streams the app's log until it reports "done" or an "error:" line.
 func followLog() error {
-	c := command(adbPath(), "logcat", "-v", "raw", "-s", "Whoogoo")
+	// AndroidRuntime carries the crash the app never gets to report itself.
+	c := command(adbPath(), "logcat", "-v", "raw", "-s", "Whoogoo", "AndroidRuntime:E")
 	out, err := c.StdoutPipe()
 	if err != nil {
 		return err
@@ -221,9 +222,22 @@ func followLog() error {
 	stop := time.AfterFunc(timeout, func() { _ = c.Process.Kill() })
 	defer stop.Stop()
 	sc := bufio.NewScanner(out)
+	fatal := false
 	for sc.Scan() {
 		line := strings.TrimSpace(sc.Text())
 		if line == "" || strings.HasPrefix(line, "---") { // logcat buffer separators
+			continue
+		}
+		// A crash never reaches the app's own error path, so without this the CLI would wait out
+		// its whole timeout. AndroidRuntime reports every app, hence the check for ours.
+		if strings.HasPrefix(line, "FATAL EXCEPTION") {
+			fatal = true
+			continue
+		}
+		if fatal && strings.Contains(line, "Process: "+app) {
+			return fmt.Errorf("the app crashed; see `adb logcat -s AndroidRuntime:E`")
+		}
+		if fatal {
 			continue
 		}
 		fmt.Println(line)
