@@ -87,7 +87,7 @@ sealed interface Ui {
 
     data class Running(val done: Int, val total: Int, val from: LocalDate, val to: LocalDate, val at: LocalDate) : Ui
 
-    data class Done(val counts: Map<String, Int>) : Ui
+    data class Done(val counts: Map<String, Int>, val removed: Boolean = false) : Ui
 
     data class Failed(val message: String) : Ui
 }
@@ -317,7 +317,11 @@ fun App(
                             }
 
                             is Ui.Done -> {
-                                Text("All moved\nover.", style = title, color = white)
+                                Text(
+                                    if (ui.removed) "Taken back\nout." else "All moved\nover.",
+                                    style = title,
+                                    color = white
+                                )
                                 Column(
                                     Modifier.padding(top = 24.dp),
                                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -331,19 +335,26 @@ fun App(
                                     }
                                 }
                                 Text(
-                                    "Open Google Health and leave it open while it copies this across. " +
-                                        "Older records take a while.",
+                                    if (ui.removed) {
+                                        "Open Google Health and leave it open. Removing workouts reaches your " +
+                                            "account the same way adding them does, and takes about as long."
+                                    } else {
+                                        "Open Google Health and leave it open while it copies this across. " +
+                                            "Older records take a while."
+                                    },
                                     style = body,
                                     color = soft,
                                     modifier = Modifier.padding(top = 24.dp)
                                 )
-                                Text(
-                                    "First time only: in Google Health, connect Health Connect and allow " +
-                                        "historical data.",
-                                    style = small,
-                                    color = dim,
-                                    modifier = Modifier.padding(top = 12.dp)
-                                )
+                                if (!ui.removed) {
+                                    Text(
+                                        "First time only: in Google Health, connect Health Connect and allow " +
+                                            "historical data.",
+                                        style = small,
+                                        color = dim,
+                                        modifier = Modifier.padding(top = 12.dp)
+                                    )
+                                }
                             }
 
                             is Ui.Failed -> {

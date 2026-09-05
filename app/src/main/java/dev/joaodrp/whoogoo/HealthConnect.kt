@@ -30,6 +30,16 @@ private fun Record.num(key: String): Double = (this[key] as Number).toDouble()
 
 private fun Record.at(key: String): OffsetDateTime = OffsetDateTime.parse(str(key))
 
+/** The Health Connect class each exported type becomes; deleting needs it without a record in hand. */
+fun recordClass(type: String): KClass<out HealthRecord> = when (type) {
+    "exercise" -> ExerciseSessionRecord::class
+    "resting_heart_rate" -> RestingHeartRateRecord::class
+    "hrv" -> HeartRateVariabilityRmssdRecord::class
+    "spo2" -> OxygenSaturationRecord::class
+    "respiratory_rate" -> RespiratoryRateRecord::class
+    else -> error("unknown record type $type")
+}
+
 fun toRecord(o: Record): HealthRecord {
     val meta = Metadata.autoRecorded(clientRecordId = o.str("id"), device = whoop)
     return when (val type = o.str("type")) {

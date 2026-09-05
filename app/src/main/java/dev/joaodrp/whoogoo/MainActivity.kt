@@ -54,7 +54,15 @@ class MainActivity : ComponentActivity() {
     /** Ids another app already covers; null until someone asks for the duplicate check. */
     private var already: Set<String>? = null
 
-    private class Cli(val skip: Set<String>, val from: LocalDate?, val until: LocalDate?)
+    private class Cli(
+        val skip: Set<String>,
+        val from: LocalDate?,
+        val until: LocalDate?,
+        /** A file in filesDir listing client record ids to delete, one per line, instead of importing. */
+        val delete: String?,
+        /** Report what the run would do and stop. */
+        val dry: Boolean
+    )
 
     private val requestPermissions =
         registerForActivityResult(PermissionController.createRequestPermissionResultContract()) { granted ->
@@ -107,7 +115,9 @@ class MainActivity : ComponentActivity() {
         cli = Cli(
             skip = intent.getStringExtra("skip").orEmpty().split(',').filter { it.isNotBlank() }.toSet(),
             from = intent.getStringExtra("from")?.let(LocalDate::parse),
-            until = intent.getStringExtra("until")?.let(LocalDate::parse)
+            until = intent.getStringExtra("until")?.let(LocalDate::parse),
+            delete = intent.getStringExtra("delete")?.takeIf { '/' !in it },
+            dry = intent.getBooleanExtra("dry", false)
         )
         start { File(filesDir, name).inputStream() }
     }
@@ -134,10 +144,13 @@ class MainActivity : ComponentActivity() {
             converted = open().use { convert(readExport(it)) }
             val types = counts(converted).keys
             val c = cli
-            if (c == null) {
-                choose(types, converted.first().time().toLocalDate(), converted.last().time().toLocalDate())
-            } else {
-                insert(filter(converted, types - c.skip, c.from, c.until))
+            when {
+                c == null ->
+                    choose(types, converted.first().time().toLocalDate(), converted.last().time().toLocalDate())
+
+                c.delete != null -> remove(File(filesDir, c.delete).readLines(), c.dry)
+
+                else -> insert(filter(converted, types - c.skip, c.from, c.until), c.dry)
             }
         } catch (e: Exception) {
             fail(e.message ?: e.toString())
@@ -207,9 +220,39 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+    /**
+     * Deletes records this app wrote, named by the client record ids it gave them. Only ids the
+     * export in hand actually produced are accepted, so a stray line cannot reach anything else,
+     * and Health Connect scopes a client record id to the app that wrote it either way.
+     */
+    private suspend fun remove(lines: List<String>, dry: Boolean) {
+        val wanted = lines.map { it.trim() }.filter { it.isNotEmpty() }
+        val byId = converted.associateBy { it["id"] as String }
+        val unknown = wanted.filterNot { it in byId }
+        require(unknown.isEmpty()) { "${unknown.size} of ${wanted.size} ids are not from this export" }
+        val records = wanted.mapNotNull { byId[it] }
+        require(records.isNotEmpty()) { "nothing to delete: no ids given" }
+        log("deleting " + countsString(counts(records)))
+        if (dry) {
+            log("dry run, nothing deleted\ndone")
+            return
+        }
+        for ((type, group) in records.groupBy { it["type"] as String }) {
+            val ids = group.map { it["id"] as String }
+            client.deleteRecords(recordClass(type), recordIdsList = emptyList(), clientRecordIdsList = ids)
+            log("deleted ${ids.size} $type")
+        }
+        ui = Ui.Done(counts(records), removed = true)
+        log("done")
+    }
+
     /** Upserts the records and leaves them in records.json for the CLI's `verify`. */
-    private suspend fun insert(records: List<Record>) {
+    private suspend fun insert(records: List<Record>, dry: Boolean = false) {
         require(records.isNotEmpty()) { "nothing to import: everything was filtered out" }
+        if (dry) {
+            log(countsString(counts(records)) + "\ndry run, nothing imported\ndone")
+            return
+        }
         File(filesDir, "records.json").writeText(JSONArray(records).toString(1))
         val counts = counts(records)
         log(countsString(counts))
