@@ -93,6 +93,9 @@ search for "Health Connect" in the emulator's Settings and open Data and access.
 On the phone, or in the emulator window:
 
 1. On the emulator: open the Play Store, sign in with your Google account and install Google Health.
+   If your account uses passkeys for 2-step verification, choose "Try another way": the emulator has
+   no Bluetooth, so a passkey on your phone cannot be used. A backup code or an authenticator app
+   works.
 2. Open Google Health and sign in.
 3. In Google Health: Connections -> Health Connect (or Partner apps -> Set up Health Connect). Allow
    all data types, then under Additional access enable Historical data and background access.
