@@ -332,11 +332,16 @@ func verify(path string) error {
 	for _, r := range records {
 		kind := rstr(r, "type")
 		byType[kind] = append(byType[kind], r)
+		// A record with neither contributes no bound: an empty string sorts first and would
+		// drag the query window back to the zero date.
 		if t := rstr(r, "time"); t != "" {
 			times = append(times, t)
-		} else {
-			times = append(times, rstr(r, "start"))
+		} else if start := rstr(r, "start"); start != "" {
+			times = append(times, start)
 		}
+	}
+	if len(times) == 0 {
+		return fmt.Errorf("no record in %s carries a timestamp", path)
 	}
 	lo := parseISO(slices.Min(times)).AddDate(0, 0, -1).Format("2006-01-02")
 	hi := parseISO(slices.Max(times)).AddDate(0, 0, 2).Format("2006-01-02")
