@@ -26,6 +26,9 @@ type Record map[string]any
 // Google Health API, read-only: https://developers.google.com/health/reference/rest
 const api = "https://health.googleapis.com/v4/users/me/dataTypes"
 
+// A hung connection should fail the command, not hold it open until someone notices.
+var client = &http.Client{Timeout: 60 * time.Second}
+
 var scopes = strings.Join([]string{
 	"https://www.googleapis.com/auth/googlehealth.sleep.readonly",
 	"https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly",
@@ -61,7 +64,7 @@ func decodeJSON(resp *http.Response, err error, v any) error {
 }
 
 func exchange(form url.Values) (t token, err error) {
-	resp, err := http.PostForm("https://oauth2.googleapis.com/token", form)
+	resp, err := client.PostForm("https://oauth2.googleapis.com/token", form)
 	return t, decodeJSON(resp, err, &t)
 }
 
@@ -106,7 +109,12 @@ func login(clientID, secret string) (token, error) {
 	authURL := "https://accounts.google.com/o/oauth2/v2/auth?" + q.Encode()
 	fmt.Println("Opening browser for Google sign-in...\n" + authURL)
 	openBrowser(authURL)
-	c := <-code
+	var c string
+	select {
+	case c = <-code:
+	case <-time.After(10 * time.Minute):
+		return token{}, fmt.Errorf("no sign-in within 10 minutes")
+	}
 	if c == "" {
 		return token{}, fmt.Errorf("sign-in failed: no authorization code")
 	}
@@ -127,6 +135,8 @@ func accessToken() (string, error) {
 	} else if t, err = login(clientID, secret); err != nil {
 		return "", err
 	} else {
+		// Without this the freshly issued token looks expired and is refreshed straight away.
+		t.ExpiresAt = float64(time.Now().Unix()) + t.ExpiresIn
 		fmt.Println("token cached at", tokenPath())
 	}
 	if t.ExpiresAt < float64(time.Now().Unix()+60) {
@@ -194,7 +204,7 @@ func listPoints(tok, dataType, filter string) ([]point, error) {
 			DataPoints    []point `json:"dataPoints"`
 			NextPageToken string  `json:"nextPageToken"`
 		}
-		resp, err := http.DefaultClient.Do(req)
+		resp, err := client.Do(req)
 		if err := decodeJSON(resp, err, &res); err != nil {
 			return nil, err
 		}

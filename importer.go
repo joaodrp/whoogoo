@@ -76,7 +76,8 @@ func downloadAPK() (string, error) {
 	url := fmt.Sprintf(apkURL, version, version)
 	path := filepath.Join(cacheDir(), "whoogoo.apk")
 	fmt.Println("downloading", url)
-	resp, err := http.Get(url)
+	// Generous: this is a 30 MB APK, but not unbounded.
+	resp, err := (&http.Client{Timeout: 10 * time.Minute}).Get(url)
 	if err != nil {
 		return "", err
 	}
