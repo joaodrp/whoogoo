@@ -1,7 +1,7 @@
 # Contributing
 
-Thanks for looking. This is a small project with a narrow purpose: move a WHOOP export into
-Google Health without inventing any numbers along the way.
+Thanks for looking. Small project, narrow purpose: move a WHOOP export into Google Health, and
+leave out whatever it cannot carry accurately.
 
 ## Getting set up
 

@@ -1,31 +1,20 @@
 # whoogoo
 
-Move your WHOOP history into Google Health, without inventing any numbers along the way.
+Import your WHOOP history into Google Health.
 
-whoogoo is two things:
+- **The app** reads the export zip WHOOP emails you and writes it to Health Connect. The Google
+  Health app takes it from there into your account.
+- **The CLI** is for people without an Android phone. It runs the app on an emulator on your
+  computer, and checks afterwards that everything arrived.
 
-- **An Android app.** Give it the export zip WHOOP emails you, pick what should move, and it writes
-  to Health Connect. That is the whole tool.
-- **A command line companion.** If you own no Android phone, it sets up an emulator on your
-  computer and runs the app inside it, then checks the result against your account afterwards.
-
-Why the detour: Google Health has no file import, and its cloud API can read the daily vitals but
-not write them. Health Connect can, and the Google Health app syncs Health Connect data, history
-included, into your account. whoogoo runs that chain, carrying across the parts of the export that
-survive the trip intact and leaving the rest out:
-
-```
-WHOOP export zip -> whoogoo app -> Health Connect -> Google Health app -> your account
-```
+Google Health has no file import, and its API can read the daily vitals but not write them. Health
+Connect is the only way in.
 
 <p align="center">
   <img src="docs/screenshots/01-idle.png" width="31%" alt="The opening screen">
   <img src="docs/screenshots/02-choosing.png" width="31%" alt="Choosing what to import, with a caveat under each type">
   <img src="docs/screenshots/03-months.png" width="31%" alt="Narrowing the import to a range of months">
 </p>
-
-<p align="center"><sub>Shown against an invented export, built by
-<a href="docs/sample-export.py">docs/sample-export.py</a>. No real health data appears here.</sub></p>
 
 ## What gets imported
 
