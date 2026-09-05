@@ -63,6 +63,7 @@ func main() {
 		"record types to leave out: "+strings.Join(recordTypes, ", "))
 	importC.Flags().StringVar(&opts.from, "from", "", "skip records before this date (YYYY-MM-DD)")
 	importC.Flags().StringVar(&opts.until, "until", "", "skip records after this date (YYYY-MM-DD), to stop where another device took over")
+	importC.Flags().BoolVar(&opts.dry, "dry", false, "report what would be imported and change nothing")
 
 	verifyC := &cobra.Command{
 		Use:   "verify [records.json]",

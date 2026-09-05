@@ -101,6 +101,7 @@ var recordTypes = []string{"resting_heart_rate", "hrv", "spo2", "respiratory_rat
 type filters struct {
 	skip        []string
 	from, until string
+	dry         bool
 }
 
 // extras turns the filters into `am start` arguments the app reads, rejecting typos here rather
@@ -123,6 +124,9 @@ func (f filters) extras() ([]string, error) {
 			return nil, fmt.Errorf("--%s %s: want a date like 2026-05-31", d.name, d.value)
 		}
 		args = append(args, "--es", d.name, d.value)
+	}
+	if f.dry {
+		args = append(args, "--ez", "dry", "true")
 	}
 	return args, nil
 }
@@ -185,6 +189,9 @@ func importCmd(zip, apk string, opts filters) error {
 	}
 	if err := followLog(); err != nil {
 		return err
+	}
+	if opts.dry {
+		return nil // nothing was written, so there is nothing to pull
 	}
 	// exec-out keeps the bytes as written, unlike shell, which is meant for a terminal.
 	records, err := command(adbPath(), "exec-out", "run-as", app, "cat", "files/records.json").Output()

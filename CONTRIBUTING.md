@@ -64,8 +64,12 @@ The end-to-end check is `whoogoo emu` in one shell and `whoogoo import` in anoth
 Connect's "Data and access" screen on the emulator. Signing in to a Google account, and therefore
 the account sync and `whoogoo verify`, needs a windowed emulator and a human.
 
-The app understands a `dry` intent extra that reports what a run would do and changes nothing. It
-is not exposed as a CLI flag yet.
+`whoogoo import --dry` reports what would be imported and changes nothing.
+
+The app also understands a `delete` extra naming a file of client record ids to remove instead of
+importing. That is a repair path, used to undo an import that should not have happened, and it has
+no CLI flag: it is reached with `adb shell am start ... --es delete <file>` against a file placed
+in the app's own directory. Only ids the export in hand produced are accepted.
 
 ## Commits and releases
 
