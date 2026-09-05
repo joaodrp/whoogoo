@@ -13,9 +13,11 @@ android {
         minSdk = 34
         targetSdk = 36
         versionName = version
-        // Monotonic per release so a sideloaded APK updates over the previous one.
-        val (major, minor, patch) = version.substringBefore('-').split('.').map(String::toInt)
-        versionCode = 1 + major * 1_000_000 + minor * 1000 + patch
+        // Monotonic per release so a sideloaded APK updates over the previous one. Tolerates a
+        // short or non-numeric tag rather than failing configuration after the tag is pushed.
+        val parts = version.substringBefore('-').split('.').map { it.toIntOrNull() ?: 0 }
+        fun part(i: Int) = parts.getOrElse(i) { 0 }
+        versionCode = 1 + part(0) * 1_000_000 + part(1) * 1000 + part(2)
     }
     buildFeatures.compose = true
     // Throwaway key committed on purpose: every release must install over the previous one.
