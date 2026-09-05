@@ -101,14 +101,16 @@ private fun parseCSV(text: String): List<Row> {
 }
 
 /** The sleeps file is read for the respiratory rate alone; the README says why sleep is left out. */
-private fun sleeps(rows: List<Row>): List<Record> = rows.filter { it.has("Respiratory rate (rpm)") }.map { r ->
-    mapOf(
-        "type" to "respiratory_rate",
-        "id" to "whoop:rr:" + r["Sleep onset"],
-        "time" to iso(parseTS(r.getValue("Wake onset"), r.getValue("Cycle timezone"))),
-        "rpm" to r.num("Respiratory rate (rpm)")
-    )
-}
+// A sleep still in progress when the export was taken has no wake time to stamp the reading with.
+private fun sleeps(rows: List<Row>): List<Record> =
+    rows.filter { it.has("Respiratory rate (rpm)") && it.has("Wake onset") }.map { r ->
+        mapOf(
+            "type" to "respiratory_rate",
+            "id" to "whoop:rr:" + r["Sleep onset"],
+            "time" to iso(parseTS(r.getValue("Wake onset"), r.getValue("Cycle timezone"))),
+            "rpm" to r.num("Respiratory rate (rpm)")
+        )
+    }
 
 private fun cycles(rows: List<Row>): List<Record> {
     return rows.flatMap { r ->

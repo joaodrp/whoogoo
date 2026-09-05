@@ -127,4 +127,16 @@ class ConvertTest {
         assertEquals(setOf(workout["id"]), alreadyThere(records, emptyMap(), listOf(start + 1..end)))
         assertEquals(emptySet<String>(), alreadyThere(records, emptyMap(), listOf(end..end + 60_000)))
     }
+
+    @Test
+    fun skipsASleepStillInProgress() {
+        // A sleep the export caught mid-flight has a respiratory rate but no wake time yet.
+        val rows = SLEEPS.trimEnd().lines()
+        val cells = rows[1].split(",").toMutableList()
+        cells[4] = ""
+        val inProgress = (rows[0] + "\n" + cells.joinToString(",")) + "\n"
+        val records = convert(csvs + ("sleeps.csv" to inProgress))
+        assertEquals(0, records.count { it["type"] == "respiratory_rate" })
+        assertTrue(records.isNotEmpty())
+    }
 }
