@@ -41,8 +41,22 @@ func adb(args ...string) (string, error) {
 // waitForDevice returns once the device reports boot complete; adb may flap while the emulator
 // boots, so each probe is a fresh, short-lived command.
 func waitForDevice() error {
-	if _, err := adb("wait-for-device"); err != nil {
+	// adb wait-for-device blocks for ever when nothing is attached, which is the easiest first
+	// run to get wrong, so bound it and say what to do about it.
+	attached := make(chan error, 1)
+	c := command(adbPath(), "wait-for-device")
+	if err := c.Start(); err != nil {
 		return err
+	}
+	go func() { attached <- c.Wait() }()
+	select {
+	case err := <-attached:
+		if err != nil {
+			return fmt.Errorf("adb wait-for-device: %w", err)
+		}
+	case <-time.After(timeout):
+		_ = c.Process.Kill()
+		return fmt.Errorf("no device attached after %s; start one with `whoogoo emu`", timeout)
 	}
 	for deadline := time.Now().Add(timeout); time.Now().Before(deadline); time.Sleep(3 * time.Second) {
 		if out, _ := adb("shell", "getprop", "sys.boot_completed"); strings.TrimSpace(out) == "1" {
