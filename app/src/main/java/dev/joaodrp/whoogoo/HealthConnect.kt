@@ -40,8 +40,15 @@ fun recordClass(type: String): KClass<out HealthRecord> = when (type) {
     else -> error("unknown record type $type")
 }
 
+/**
+ * Stamped on every record of one import so a later import wins. Health Connect only overwrites a
+ * record when the incoming version is strictly higher, so a fixed version would make re-importing
+ * corrected values do nothing at all.
+ */
+private val version = System.currentTimeMillis()
+
 fun toRecord(o: Record): HealthRecord {
-    val meta = Metadata.autoRecorded(clientRecordId = o.str("id"), device = whoop)
+    val meta = Metadata.autoRecorded(clientRecordId = o.str("id"), clientRecordVersion = version, device = whoop)
     return when (val type = o.str("type")) {
         "exercise" -> {
             val s = o.at("start")
