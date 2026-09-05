@@ -124,6 +124,8 @@ class MainActivity : ComponentActivity() {
 
     private fun start(open: () -> InputStream) {
         pending = open
+        // What the last export had in common with another app says nothing about this one.
+        already = null
         if (HealthConnectClient.getSdkStatus(this) != HealthConnectClient.SDK_AVAILABLE) {
             return fail("Health Connect is not available on this device")
         }
