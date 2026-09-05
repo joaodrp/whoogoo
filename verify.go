@@ -165,6 +165,14 @@ func accessToken() (string, error) {
 
 type point map[string]any
 
+// ours reports whether Google attributes this point to the app, rather than to a watch or a phone
+// that also feeds the account. Anything else may hold the same value for the same day, so counting
+// it as a match would report a sync that never happened. Google Health records the package on
+// every point that reached it through Health Connect.
+func ours(p point) bool {
+	return str(p, "dataSource", "application", "packageName") == app
+}
+
 // rstr reads a records.json string field. A record written by a different version of the app can
 // be missing one, which must read as a mismatch rather than panic mid-run.
 func rstr(r Record, key string) string {
@@ -375,7 +383,8 @@ func verify(path string) error {
 		return err
 	}
 	failed := false
-	fmt.Printf("%-20s %6s %6s %6s %6s %7s\n", "type", "whoop", "google", "match", "differ", "missing")
+	fmt.Printf("%-20s %6s %6s %6s %6s %7s %6s\n",
+		"type", "whoop", "google", "match", "differ", "missing", "other")
 	for _, s := range specs {
 		recs := byType[s.name]
 		filter := fmt.Sprintf(`%s >= "%s" AND %s < "%s"`, s.field, lo, s.field, hi)
@@ -383,8 +392,17 @@ func verify(path string) error {
 		if err != nil {
 			return err
 		}
-		matched, differ, missing := compare(recs, google, s)
-		fmt.Printf("%-20s %6d %6d %6d %6d %7d\n", s.name, len(recs), len(google), matched, len(differ), len(missing))
+		mine, others := make([]point, 0, len(google)), 0
+		for _, p := range google {
+			if ours(p) {
+				mine = append(mine, p)
+			} else {
+				others++
+			}
+		}
+		matched, differ, missing := compare(recs, mine, s)
+		fmt.Printf("%-20s %6d %6d %6d %6d %7d %6d\n",
+			s.name, len(recs), len(mine), matched, len(differ), len(missing), others)
 		for _, d := range differ[:min(3, len(differ))] {
 			fmt.Printf("    differ  %s: whoop=%v google=%v\n", d.key, d.whoop, d.google)
 		}
